@@ -1,0 +1,369 @@
+{
+  "meta": {
+    "version": 1,
+    "source": "Sample GMAT-style Questions (Original Content)",
+    "createdAt": "2025-10-04T00:00:00Z",
+    "totalItems": 24
+  },
+  "items": [
+    {
+      "id": "Q-000001",
+      "section": "Quant",
+      "type": "Problem Solving",
+      "difficulty": "E",
+      "skills": ["arithmetic", "percent"],
+      "prompt": "If 30% of a number is 45, what is 70% of that number?",
+      "options": ["90", "105", "120", "135", "150"],
+      "answer": 1,
+      "explanation": "If 30% = 45, then 100% = 45/0.3 = 150. So 70% = 150 × 0.7 = 105"
+    },
+    {
+      "id": "Q-000002",
+      "section": "Quant",
+      "type": "Problem Solving",
+      "difficulty": "M",
+      "skills": ["algebra", "linear"],
+      "prompt": "If 3x + 7 = 25, what is the value of 6x - 5?",
+      "options": ["31", "28", "25", "23", "21"],
+      "answer": 0,
+      "explanation": "3x + 7 = 25 → 3x = 18 → x = 6. Then 6x - 5 = 36 - 5 = 31"
+    },
+    {
+      "id": "Q-000003",
+      "section": "Quant",
+      "type": "Data Sufficiency",
+      "difficulty": "M",
+      "skills": ["algebra", "equations"],
+      "prompt": "Is x > y?\n\n(1) x + 3 > y + 3\n(2) x - y = 5",
+      "options": [
+        "Statement (1) ALONE is sufficient",
+        "Statement (2) ALONE is sufficient",
+        "BOTH statements TOGETHER are sufficient",
+        "EACH statement ALONE is sufficient",
+        "Statements (1) and (2) TOGETHER are NOT sufficient"
+      ],
+      "answer": 3,
+      "explanation": "Statement (1): x + 3 > y + 3 → x > y. Sufficient. Statement (2): x - y = 5 → x = y + 5 → x > y. Sufficient. Answer: D"
+    },
+    {
+      "id": "Q-000004",
+      "section": "Quant",
+      "type": "Problem Solving",
+      "difficulty": "H",
+      "skills": ["ratio", "algebra"],
+      "prompt": "The ratio of boys to girls in a class is 3:4. If 6 more boys join the class, the ratio becomes 5:6. How many girls are in the class?",
+      "options": ["12", "16", "18", "24", "28"],
+      "answer": 3,
+      "explanation": "Let boys = 3x, girls = 4x. Then (3x+6)/4x = 5/6 → 18x + 36 = 20x → 2x = 36 → x = 18. Girls = 4×18 = 24"
+    },
+    {
+      "id": "Q-000005",
+      "section": "Quant",
+      "type": "Problem Solving",
+      "difficulty": "E",
+      "skills": ["geometry", "area"],
+      "prompt": "A rectangle has length 12 and width 8. What is its area?",
+      "options": ["40", "80", "96", "100", "120"],
+      "answer": 2,
+      "explanation": "Area = length × width = 12 × 8 = 96"
+    },
+    {
+      "id": "Q-000006",
+      "section": "Quant",
+      "type": "Problem Solving",
+      "difficulty": "M",
+      "skills": ["percent", "decrease"],
+      "prompt": "A shirt originally priced at $80 is on sale for 25% off. What is the sale price?",
+      "options": ["$55", "$60", "$65", "$70", "$75"],
+      "answer": 1,
+      "explanation": "25% of 80 = 20. Sale price = 80 - 20 = $60"
+    },
+    {
+      "id": "Q-000007",
+      "section": "Quant",
+      "type": "Data Sufficiency",
+      "difficulty": "H",
+      "skills": ["number_properties", "divisibility"],
+      "prompt": "Is integer n divisible by 12?\n\n(1) n is divisible by 3\n(2) n is divisible by 4",
+      "options": [
+        "Statement (1) ALONE is sufficient",
+        "Statement (2) ALONE is sufficient",
+        "BOTH statements TOGETHER are sufficient",
+        "EACH statement ALONE is sufficient",
+        "Statements (1) and (2) TOGETHER are NOT sufficient"
+      ],
+      "answer": 4,
+      "explanation": "For n to be divisible by 12, it must be divisible by both 3 and 4. However, being divisible by both 3 and 4 doesn't guarantee divisibility by 12 (e.g., n=6). But actually, LCM(3,4)=12, so if divisible by both, it IS divisible by 12. Answer: C"
+    },
+    {
+      "id": "Q-000008",
+      "section": "Quant",
+      "type": "Problem Solving",
+      "difficulty": "E",
+      "skills": ["arithmetic", "operations"],
+      "prompt": "What is the value of (15 + 9) × 2 - 10?",
+      "options": ["38", "40", "42", "44", "48"],
+      "answer": 0,
+      "explanation": "(15 + 9) × 2 - 10 = 24 × 2 - 10 = 48 - 10 = 38"
+    },
+    {
+      "id": "V-000001",
+      "section": "Verbal",
+      "type": "Critical Reasoning",
+      "difficulty": "E",
+      "skills": ["strengthen"],
+      "prompt": "Company X claims their new energy drink improves athletic performance. A study showed that athletes who drank the beverage before workouts performed 10% better than those who did not.\n\nWhich of the following, if true, most strengthens the company's claim?",
+      "options": [
+        "The study was conducted with a control group who drank a placebo",
+        "Company X has been selling energy drinks for 20 years",
+        "The study included only professional athletes",
+        "Energy drinks are popular among young consumers",
+        "The company plans to expand its product line"
+      ],
+      "answer": 0,
+      "explanation": "A control group with placebo strengthens the claim by eliminating alternative explanations"
+    },
+    {
+      "id": "V-000002",
+      "section": "Verbal",
+      "type": "Critical Reasoning",
+      "difficulty": "M",
+      "skills": ["weaken"],
+      "prompt": "City planners claim that building a new subway line will reduce traffic congestion. They cite studies showing that subway ridership increases in cities with new lines.\n\nWhich of the following, if true, most weakens the planners' argument?",
+      "options": [
+        "The new line will be expensive to maintain",
+        "Many residents prefer driving to using public transportation",
+        "New subway lines often attract more people to move to the city, offsetting congestion benefits",
+        "The subway will reduce air pollution",
+        "Other cities have successfully implemented subway systems"
+      ],
+      "answer": 2,
+      "explanation": "If new subway lines attract more people to the city, the increased population could offset any congestion reduction"
+    },
+    {
+      "id": "V-000003",
+      "section": "Verbal",
+      "type": "Reading Comprehension",
+      "difficulty": "M",
+      "skills": ["inference"],
+      "prompt": "The Industrial Revolution transformed manufacturing through mechanization, but it also created harsh working conditions. Factory workers often labored 14-hour days in dangerous environments with minimal pay. This led to the formation of labor unions advocating for workers' rights.\n\nWhich of the following can be inferred from the passage?",
+      "options": [
+        "Labor unions existed before the Industrial Revolution",
+        "All factory workers supported unionization",
+        "Poor working conditions contributed to labor organization",
+        "The Industrial Revolution had only negative consequences",
+        "Mechanization eliminated all manual labor"
+      ],
+      "answer": 2,
+      "explanation": "The passage directly connects harsh conditions to union formation"
+    },
+    {
+      "id": "V-000004",
+      "section": "Verbal",
+      "type": "Critical Reasoning",
+      "difficulty": "H",
+      "skills": ["assumption"],
+      "prompt": "A pharmaceutical company argues that its drug approval process is more rigorous than competitors' because it conducts three phases of clinical trials before seeking regulatory approval.\n\nWhich of the following is an assumption underlying the company's argument?",
+      "options": [
+        "More phases of testing indicate higher quality standards",
+        "Regulatory agencies require at least three trial phases",
+        "Competitors do not conduct clinical trials",
+        "The drug will be successful in the market",
+        "Clinical trials are expensive to conduct"
+      ],
+      "answer": 0,
+      "explanation": "The argument assumes that more testing phases equals more rigor"
+    },
+    {
+      "id": "V-000005",
+      "section": "Verbal",
+      "type": "Sentence Correction",
+      "difficulty": "E",
+      "skills": ["subject_verb_agreement"],
+      "prompt": "The committee, along with several advisors, are reviewing the proposal.\n\nWhich version is correct?",
+      "options": [
+        "are reviewing",
+        "is reviewing",
+        "were reviewing",
+        "have been reviewing",
+        "reviews"
+      ],
+      "answer": 1,
+      "explanation": "The subject 'committee' is singular, so 'is reviewing' is correct"
+    },
+    {
+      "id": "V-000006",
+      "section": "Verbal",
+      "type": "Reading Comprehension",
+      "difficulty": "M",
+      "skills": ["main_idea"],
+      "prompt": "Quantum computing represents a paradigm shift in computational capability. Unlike classical computers that use bits (0 or 1), quantum computers use qubits that can exist in superposition, representing both states simultaneously. This allows quantum computers to process vast amounts of data exponentially faster than classical systems for certain types of problems.\n\nWhat is the main idea of the passage?",
+      "options": [
+        "Classical computers are becoming obsolete",
+        "Qubits are superior to bits in all applications",
+        "Quantum computing offers fundamentally different and more powerful capabilities",
+        "All computational problems can be solved with quantum computers",
+        "Quantum computers have replaced classical computers"
+      ],
+      "answer": 2,
+      "explanation": "The passage emphasizes the paradigm shift and different capabilities of quantum computing"
+    },
+    {
+      "id": "V-000007",
+      "section": "Verbal",
+      "type": "Critical Reasoning",
+      "difficulty": "H",
+      "skills": ["paradox"],
+      "prompt": "Despite increased public awareness of environmental issues and widespread adoption of recycling programs, the amount of waste sent to landfills has remained constant over the past decade.\n\nWhich of the following best explains this paradox?",
+      "options": [
+        "Recycling programs are not effective",
+        "Population growth and increased consumption have offset recycling gains",
+        "People do not care about the environment",
+        "Landfills are necessary for waste management",
+        "Environmental awareness campaigns have failed"
+      ],
+      "answer": 1,
+      "explanation": "Population growth and increased consumption can explain why waste levels remain constant despite more recycling"
+    },
+    {
+      "id": "V-000008",
+      "section": "Verbal",
+      "type": "Reading Comprehension",
+      "difficulty": "E",
+      "skills": ["detail"],
+      "prompt": "Marie Curie was the first woman to win a Nobel Prize and remains the only person to win Nobel Prizes in two different scientific fields: Physics (1903) and Chemistry (1911). Her research on radioactivity laid the foundation for modern nuclear physics.\n\nAccording to the passage, which is true about Marie Curie?",
+      "options": [
+        "She won three Nobel Prizes",
+        "She won Nobel Prizes in Physics and Medicine",
+        "She is the only person to win multiple Nobel Prizes",
+        "She won Nobel Prizes in two different scientific fields",
+        "Her work focused exclusively on chemistry"
+      ],
+      "answer": 3,
+      "explanation": "The passage explicitly states she won prizes in Physics and Chemistry"
+    },
+    {
+      "id": "DI-000001",
+      "section": "Data Insights",
+      "type": "Table Analysis",
+      "difficulty": "E",
+      "skills": ["table", "calculation"],
+      "prompt": "The table shows quarterly sales for three products. What was the total sales for Product B across all quarters?",
+      "table": {
+        "headers": ["Quarter", "Product A", "Product B", "Product C"],
+        "rows": [
+          ["Q1", "$10,000", "$15,000", "$8,000"],
+          ["Q2", "$12,000", "$14,000", "$9,000"],
+          ["Q3", "$11,000", "$16,000", "$10,000"],
+          ["Q4", "$13,000", "$15,000", "$11,000"]
+        ]
+      },
+      "options": ["$58,000", "$60,000", "$62,000", "$64,000", "$66,000"],
+      "answer": 1,
+      "explanation": "Product B: 15,000 + 14,000 + 16,000 + 15,000 = $60,000"
+    },
+    {
+      "id": "DI-000002",
+      "section": "Data Insights",
+      "type": "Graphics Interpretation",
+      "difficulty": "M",
+      "skills": ["graphics", "trends"],
+      "prompt": "Based on the company revenue data, which quarter showed the highest percentage increase compared to the previous quarter?\n\n[Assume data: Q1=$100k, Q2=$120k, Q3=$135k, Q4=$145k]",
+      "options": ["Q1", "Q2", "Q3", "Q4", "All equal"],
+      "answer": 1,
+      "explanation": "Q2: 20% increase, Q3: 12.5% increase, Q4: 7.4% increase. Q2 had the highest percentage increase"
+    },
+    {
+      "id": "DI-000003",
+      "section": "Data Insights",
+      "type": "Two-Part Analysis",
+      "difficulty": "M",
+      "skills": ["two-part", "logic"],
+      "prompt": "A company must choose two projects from A, B, and C. Project A costs $50k and returns $80k. Project B costs $30k and returns $45k. Project C costs $40k and returns $65k. The budget is $80k.\n\nWhich combination maximizes profit?",
+      "options": [
+        "A and B (profit: $45k)",
+        "A and C (profit: $55k)",
+        "B and C (profit: $40k)",
+        "Only A (profit: $30k)",
+        "Only B and use remaining budget elsewhere"
+      ],
+      "answer": 1,
+      "explanation": "A+B costs $80k (profit $45k), A+C costs $90k (over budget), B+C costs $70k (profit $40k). A+B maximizes within budget"
+    },
+    {
+      "id": "DI-000004",
+      "section": "Data Insights",
+      "type": "Multi-Source Reasoning",
+      "difficulty": "H",
+      "skills": ["MSR", "synthesis"],
+      "prompt": "Source 1: Survey shows 60% of customers prefer online shopping.\nSource 2: Store sales increased 15% after improving in-store experience.\nSource 3: Online sales represent 40% of total revenue.\n\nWhich conclusion is best supported?",
+      "options": [
+        "Online shopping will completely replace physical stores",
+        "Customer preferences and actual behavior may differ",
+        "In-store improvements are ineffective",
+        "Online sales should be discontinued",
+        "Survey data is always unreliable"
+      ],
+      "answer": 1,
+      "explanation": "60% prefer online but only 40% revenue is online, and in-store improvements increased sales, suggesting preference ≠ behavior"
+    },
+    {
+      "id": "DI-000005",
+      "section": "Data Insights",
+      "type": "Table Analysis",
+      "difficulty": "M",
+      "skills": ["table", "comparison"],
+      "prompt": "Which employee had the highest average monthly sales?",
+      "table": {
+        "headers": ["Employee", "Jan", "Feb", "Mar"],
+        "rows": [
+          ["Alice", "$20k", "$22k", "$24k"],
+          ["Bob", "$25k", "$21k", "$20k"],
+          ["Carol", "$21k", "$23k", "$22k"]
+        ]
+      },
+      "options": ["Alice", "Bob", "Carol", "Alice and Bob tied", "All equal"],
+      "answer": 2,
+      "explanation": "Alice: $22k avg, Bob: $22k avg, Carol: $22k avg. They're all equal"
+    },
+    {
+      "id": "DI-000006",
+      "section": "Data Insights",
+      "type": "Data Sufficiency",
+      "difficulty": "H",
+      "skills": ["DI-DS", "logic"],
+      "prompt": "Is the average of five consecutive integers greater than 20?\n\n(1) The smallest integer is 18\n(2) The largest integer is 22",
+      "options": [
+        "Statement (1) ALONE is sufficient",
+        "Statement (2) ALONE is sufficient",
+        "BOTH statements TOGETHER are sufficient",
+        "EACH statement ALONE is sufficient",
+        "Statements (1) and (2) TOGETHER are NOT sufficient"
+      ],
+      "answer": 3,
+      "explanation": "If smallest=18, integers are 18,19,20,21,22 (avg=20). If largest=22, same set. Both give avg=20, not >20. Each alone sufficient. Answer: D"
+    },
+    {
+      "id": "DI-000007",
+      "section": "Data Insights",
+      "type": "Two-Part Analysis",
+      "difficulty": "E",
+      "skills": ["two-part", "arithmetic"],
+      "prompt": "A store sells apples for $2 each and oranges for $3 each. If you buy 5 apples and some oranges for a total of $25, how many oranges did you buy?",
+      "options": ["3", "4", "5", "6", "7"],
+      "answer": 2,
+      "explanation": "Apples: 5 × $2 = $10. Remaining: $25 - $10 = $15. Oranges: $15 ÷ $3 = 5"
+    },
+    {
+      "id": "DI-000008",
+      "section": "Data Insights",
+      "type": "Graphics Interpretation",
+      "difficulty": "M",
+      "skills": ["graphics", "percentage"],
+      "prompt": "A pie chart shows department budgets: Marketing 25%, Sales 35%, R&D 20%, Operations 20%. If the total budget is $1,000,000, what is the Sales department budget?",
+      "options": ["$200,000", "$250,000", "$300,000", "$350,000", "$400,000"],
+      "answer": 3,
+      "explanation": "35% of $1,000,000 = $350,000"
+    }
+  ]
+}
