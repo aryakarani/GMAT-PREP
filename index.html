@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GMAT Focus Practice — Solo Trainer</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- SETUP SCREEN -->
+  <div id="setupScreen" class="screen active">
+    <div class="container">
+      <header class="app-header">
+        <h1>📊 GMAT Focus Practice — Solo Trainer</h1>
+        <p class="subtitle">Original GMAT-style questions • Multi-stage adaptivity • Framework-free</p>
+      </header>
+
+      <div class="setup-grid">
+        <!-- Bank Management Panel -->
+        <div class="card">
+          <h2>📥 Question Bank</h2>
+          <div class="bank-stats" id="bankStats">
+            <p><strong>Total Questions:</strong> <span id="totalItems">0</span></p>
+            <div class="difficulty-breakdown">
+              <span>Easy: <strong id="easyCount">0</strong></span>
+              <span>Medium: <strong id="mediumCount">0</strong></span>
+              <span>Hard: <strong id="hardCount">0</strong></span>
+            </div>
+          </div>
+          <div class="button-group">
+            <button id="importBtn" class="btn btn-primary">Import JSON/CSV</button>
+            <button id="exportBankBtn" class="btn btn-secondary">Export Bank</button>
+            <input type="file" id="fileInput" accept=".json,.csv" style="display:none;">
+          </div>
+        </div>
+
+        <!-- Section & Timer Setup -->
+        <div class="card">
+          <h2>⚙️ Section Setup</h2>
+          <div class="form-group">
+            <label for="sectionSelect">Section</label>
+            <select id="sectionSelect" class="select-input">
+              <option value="Quant">Quantitative Reasoning (21 questions)</option>
+              <option value="Verbal">Verbal Reasoning (23 questions)</option>
+              <option value="Data Insights">Data Insights (20 questions)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="timerSelect">Timer</label>
+            <select id="timerSelect" class="select-input">
+              <option value="45">45 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="15">15 minutes</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="orderSelect">Section Order (for full test)</label>
+            <select id="orderSelect" class="select-input">
+              <option value="QVD">Quant → Verbal → Data Insights</option>
+              <option value="QDV">Quant → Data Insights → Verbal</option>
+              <option value="VQD">Verbal → Quant → Data Insights</option>
+              <option value="VDQ">Verbal → Data Insights → Quant</option>
+              <option value="DQV">Data Insights → Quant → Verbal</option>
+              <option value="DVQ">Data Insights → Verbal → Quant</option>
+            </select>
+          </div>
+          <button id="startBtn" class="btn btn-primary btn-large">Start Practice</button>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="card">
+          <h2>⚙️ Settings</h2>
+          <div class="settings-list">
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="resetExposureCheck">
+                Reset exposure tracking (allow question re-use)
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="heuristicScalingCheck">
+                Show heuristic scaled score estimate
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="card full-width">
+          <h2>📜 Practice History</h2>
+          <div id="historyContainer" class="history-container">
+            <p class="empty-state">No attempts yet. Start practicing!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div id="questionScreen" class="screen">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <span id="sectionLabel" class="section-label">Quantitative</span>
+        <span id="difficultyLabel" class="difficulty-label">Medium</span>
+      </div>
+      <div class="top-bar-center">
+        <span id="timerDisplay" class="timer">45:00</span>
+      </div>
+      <div class="top-bar-right">
+        <span id="editsLeft" class="edits">Edits: 3</span>
+        <button id="scratchpadBtn" class="btn btn-icon" title="Scratchpad">📝</button>
+        <button id="calculatorBtn" class="btn btn-icon" title="Calculator" style="display:none;">🧮</button>
+      </div>
+    </div>
+
+    <!-- Main Question Area -->
+    <div class="question-container">
+      <div class="question-content">
+        <div class="question-header">
+          <span id="questionNumber">Question 1 of 21</span>
+          <button id="flagBtn" class="btn btn-flag">🚩 Flag</button>
+        </div>
+
+        <div id="questionPrompt" class="question-prompt">
+          <!-- Question text will be inserted here -->
+        </div>
+
+        <div id="questionTable" class="question-table" style="display:none;">
+          <!-- Optional table data -->
+        </div>
+
+        <div id="optionsContainer" class="options-container" role="radiogroup">
+          <!-- Options will be inserted here -->
+        </div>
+      </div>
+
+      <div class="question-nav">
+        <button id="prevBtn" class="btn btn-secondary">← Previous</button>
+        <button id="reviewBtn" class="btn btn-secondary">Review</button>
+        <button id="nextBtn" class="btn btn-primary">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW SCREEN -->
+  <div id="reviewScreen" class="screen">
+    <div class="review-container">
+      <h2>Review Your Answers</h2>
+      <p class="review-subtitle">Click any question to jump back</p>
+      
+      <div id="reviewGrid" class="review-grid">
+        <!-- Review items will be inserted here -->
+      </div>
+
+      <div class="review-actions">
+        <button id="backToQuestionsBtn" class="btn btn-secondary">Back to Questions</button>
+        <button id="submitSectionBtn" class="btn btn-primary btn-large">Submit Section</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="resultsScreen" class="screen">
+    <div class="container">
+      <header class="results-header">
+        <h1>✅ Section Complete!</h1>
+      </header>
+
+      <div class="results-grid">
+        <div class="card">
+          <h2>Your Performance</h2>
+          <div id="resultsContent" class="results-content">
+            <!-- Results will be inserted here -->
+          </div>
+        </div>
+
+        <div class="card full-width">
+          <h2>📜 All Attempts</h2>
+          <div id="allHistoryContainer" class="history-container">
+            <!-- History will be inserted here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button id="exportAttemptBtn" class="btn btn-secondary">Export This Attempt</button>
+        <button id="backToSetupBtn" class="btn btn-primary btn-large">New Practice Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRATCHPAD MODAL -->
+  <div id="scratchpadModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📝 Scratchpad</h3>
+        <button class="modal-close" id="closeScratchpad">&times;</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="scratchpadText" placeholder="Take notes here... (not saved between sessions)" rows="10"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALCULATOR MODAL -->
+  <div id="calculatorModal" class="modal">
+    <div class="modal-content calculator-modal">
+      <div class="modal-header">
+        <h3>🧮 Calculator</h3>
+        <button class="modal-close" id="closeCalculator">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="calculator">
+          <input type="text" id="calcDisplay" class="calc-display" readonly>
+          <div class="calc-buttons">
+            <button class="calc-btn" data-val="7">7</button>
+            <button class="calc-btn" data-val="8">8</button>
+            <button class="calc-btn" data-val="9">9</button>
+            <button class="calc-btn calc-op" data-val="/">÷</button>
+            <button class="calc-btn" data-val="4">4</button>
+            <button class="calc-btn" data-val="5">5</button>
+            <button class="calc-btn" data-val="6">6</button>
+            <button class="calc-btn calc-op" data-val="*">×</button>
+            <button class="calc-btn" data-val="1">1</button>
+            <button class="calc-btn" data-val="2">2</button>
+            <button class="calc-btn" data-val="3">3</button>
+            <button class="calc-btn calc-op" data-val="-">−</button>
+            <button class="calc-btn" data-val="0">0</button>
+            <button class="calc-btn" data-val=".">.</button>
+            <button class="calc-btn calc-op" data-val="sqrt">√</button>
+            <button class="calc-btn calc-op" data-val="+">+</button>
+            <button class="calc-btn calc-op" data-val="%">%</button>
+            <button class="calc-btn calc-clear" data-val="C">C</button>
+            <button class="calc-btn calc-back" data-val="back">⌫</button>
+            <button class="calc-btn calc-equals" data-val="=">=</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
