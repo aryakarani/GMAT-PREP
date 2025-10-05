@@ -106,7 +106,7 @@ async function loadBanks() {
     showToast('Question banks loaded successfully', 'success');
   } catch (err) {
     console.error('Failed to load banks:', err);
-    showToast('Failed to load question banks', 'error');
+    showToast('Failed to load question banks: ' + err.message, 'error');
   }
 }
 
@@ -193,7 +193,13 @@ function calculateRollingAccuracy(lastN = 5) {
  * @returns {Array} Selected questions
  */
 function sampleQuestions(section, count) {
-  let pool = APP_STATE.questionBanks[section].filter(q => q.section === section);
+  let pool = APP_STATE.questionBanks[section];
+  
+  if (!pool || pool.length === 0) {
+    console.error('No questions available for section:', section);
+    showToast(`No questions available for ${section}. Please reload banks.`, 'error');
+    return [];
+  }
   
   // Filter out used items if exposure control is enabled
   if (APP_STATE.settings.exposureControl) {
@@ -303,44 +309,54 @@ function getNextQuestion() {
 // ========================================
 
 function startSession() {
-  const section = document.getElementById('sectionSelect').value;
-  const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
-  
-  const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
-  const available = APP_STATE.questionBanks[section].length;
-  
-  if (available < sectionSize) {
-    showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
-    return;
+  try {
+    const section = document.getElementById('sectionSelect').value;
+    const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
+    
+    const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
+    const available = APP_STATE.questionBanks[section]?.length || 0;
+    
+    if (available < sectionSize) {
+      showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
+      return;
+    }
+    
+    // Reset state
+    APP_STATE.currentSection = section;
+    APP_STATE.currentQuestionIndex = 0;
+    APP_STATE.responses = {};
+    APP_STATE.flags = new Set();
+    APP_STATE.editsRemaining = 3;
+    APP_STATE.editHistory = {};
+    APP_STATE.timerSeconds = timerMinutes * 60;
+    APP_STATE.sessionUsedIds = new Set();
+    
+    // Sample questions for this session
+    APP_STATE.sectionQuestions = sampleQuestions(section, sectionSize);
+    
+    if (APP_STATE.sectionQuestions.length === 0) {
+      showToast('Failed to load questions. Please try reloading the banks.', 'error');
+      return;
+    }
+    
+    // Mark as used in session
+    APP_STATE.sectionQuestions.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
+    
+    // Show/hide calculator based on section
+    const calcBtn = document.getElementById('calculatorBtn');
+    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
+    
+    // Start timer
+    startTimer();
+    
+    // Show question screen
+    showScreen('questionScreen');
+    renderQuestion();
+    updateTopBar();
+  } catch (error) {
+    console.error('Error starting session:', error);
+    showToast('Failed to start practice session: ' + error.message, 'error');
   }
-  
-  // Reset state
-  APP_STATE.currentSection = section;
-  APP_STATE.currentQuestionIndex = 0;
-  APP_STATE.responses = {};
-  APP_STATE.flags = new Set();
-  APP_STATE.editsRemaining = 3;
-  APP_STATE.editHistory = {};
-  APP_STATE.timerSeconds = timerMinutes * 60;
-  APP_STATE.sessionUsedIds = new Set();
-  
-  // Sample questions for this session
-  APP_STATE.sectionQuestions = sampleQuestions(section, sectionSize);
-  
-  // Mark as used in session
-  APP_STATE.sectionQuestions.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
-  
-  // Show/hide calculator based on section
-  const calcBtn = document.getElementById('calculatorBtn');
-  calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
-  
-  // Start timer
-  startTimer();
-  
-  // Show question screen
-  showScreen('questionScreen');
-  renderQuestion();
-  updateTopBar();
 }
 
 function startTimer() {
