@@ -308,13 +308,20 @@ function getNextQuestion() {
 // SESSION MANAGEMENT
 // ========================================
 
-function startSession() {
+async function startSession() {
   try {
     const section = document.getElementById('sectionSelect').value;
     const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
     
     const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
-    const available = APP_STATE.questionBanks[section]?.length || 0;
+    let available = APP_STATE.questionBanks[section]?.length || 0;
+    
+    // Lazy-load banks if not ready
+    if (available === 0) {
+      showToast('Loading question banks…', 'warning');
+      await loadBanks();
+      available = APP_STATE.questionBanks[section]?.length || 0;
+    }
     
     if (available < sectionSize) {
       showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
@@ -1136,10 +1143,12 @@ function initEventListeners() {
 // ========================================
 
 async function init() {
-  await loadBanks();
+  // Attach listeners immediately so UI is responsive even if loading takes time
   initEventListeners();
   initCalculator();
   loadHistoryOnSetup();
+  
+  await loadBanks();
   
   // Apply settings to UI
   document.getElementById('heuristicScalingCheck').checked = APP_STATE.settings.scaledScoreEnabled;
