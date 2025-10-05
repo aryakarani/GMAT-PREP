@@ -325,35 +325,50 @@ function getNextQuestion() {
 // SESSION MANAGEMENT
 // ========================================
 
-async function startSession() {
+/**
+ * Simple non-repeating sampler
+ */
+function sampleWithoutReplacement(pool, count) {
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, pool.length));
+}
+
+/**
+ * Universal start logic for practice tests
+ */
+async function startPractice(section) {
   try {
-    const section = document.getElementById('sectionSelect').value;
+    // Determine which bank file to load
+    const fileMap = {
+      Quant: "./data/bank_quant.json",
+      Verbal: "./data/bank_verbal.json",
+      "Data Insights": "./data/bank_di.json"
+    };
+    
+    // Load the bank if not already loaded
+    if (!APP_STATE.questionBanks[section] || APP_STATE.questionBanks[section].length === 0) {
+      const res = await fetch(fileMap[section]);
+      if (!res.ok) throw new Error("Bank not found");
+      const bankData = await res.json();
+      APP_STATE.questionBanks[section] = bankData.items || [];
+    }
+    
+    const bank = APP_STATE.questionBanks[section];
+    
+    // Filter to this section and shuffle
+    const sectionItems = bank.filter(q => q.section === section || !q.section);
+    if (!sectionItems.length) throw new Error("No questions loaded");
+    
+    // Random weighted sampling by difficulty
+    const sampleCount = section === "Quant" ? 21 : section === "Verbal" ? 23 : 20;
+    const picked = sampleWithoutReplacement(sectionItems, sampleCount);
+    
+    // Get timer setting
     const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
     
-    const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
-    let available = APP_STATE.questionBanks[section]?.length || 0;
-    
-    // Lazy-load banks if not ready
-    if (available === 0) {
-      showToast('Loading question banks…', 'info');
-      
-      try {
-        await loadBanks();
-        available = APP_STATE.questionBanks[section]?.length || 0;
-      } catch (loadError) {
-        console.error('Failed to load banks in startSession:', loadError);
-        showToast('Failed to load question banks. Please check your connection and try again.', 'error');
-        return;
-      }
-    }
-    
-    if (available < sectionSize) {
-      showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
-      return;
-    }
-    
-    // Reset state
+    // Build current session
     APP_STATE.currentSection = section;
+    APP_STATE.sectionQuestions = picked;
     APP_STATE.currentQuestionIndex = 0;
     APP_STATE.responses = {};
     APP_STATE.flags = new Set();
@@ -362,32 +377,32 @@ async function startSession() {
     APP_STATE.timerSeconds = timerMinutes * 60;
     APP_STATE.sessionUsedIds = new Set();
     
-    // Sample questions for this session
-    APP_STATE.sectionQuestions = sampleQuestions(section, sectionSize);
-    
-    if (APP_STATE.sectionQuestions.length === 0) {
-      showToast('Failed to load questions. Please try reloading the banks.', 'error');
-      return;
-    }
-    
     // Mark as used in session
-    APP_STATE.sectionQuestions.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
+    picked.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
     
     // Show/hide calculator based on section
     const calcBtn = document.getElementById('calculatorBtn');
     calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
     
-    // Start timer
+    // Start timer and render
     startTimer();
-    
-    // Show question screen
     showScreen('questionScreen');
     renderQuestion();
     updateTopBar();
-  } catch (error) {
-    console.error('Error starting session:', error);
-    showToast('Failed to start practice session: ' + error.message, 'error');
+    
+    showToast(`✅ ${section} test started with ${picked.length} unique questions`, 'success');
+  } catch (err) {
+    console.error("Start practice failed:", err);
+    showToast(`⚠️ ${err.message}`, 'error');
   }
+}
+
+/**
+ * Legacy wrapper for compatibility
+ */
+async function startSession() {
+  const section = document.getElementById('sectionSelect').value;
+  await startPractice(section);
 }
 
 function startTimer() {
@@ -1082,7 +1097,10 @@ function closeModal(modalId) {
 
 function initEventListeners() {
   // Setup screen
-  document.getElementById('startBtn').addEventListener('click', startSession);
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const section = document.getElementById('sectionSelect').value;
+    startPractice(section);
+  });
   document.getElementById('resetBankBtn').addEventListener('click', resetBankExposure);
   document.getElementById('bankStatsBtn').addEventListener('click', showBankStats);
   document.getElementById('reloadBankBtn').addEventListener('click', () => {
