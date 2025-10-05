@@ -332,23 +332,29 @@ function assembleSection(section, count) {
     throw new Error('Banks not loaded');
   }
   
+  // Ensure section name is correctly mapped
   var pool = window.BANKS[section];
   if (!pool || pool.length === 0) {
+    console.error('Failed to get bank for section:', section);
+    console.error('Available banks:', Object.keys(window.BANKS));
     throw new Error('No questions available for section: ' + section);
   }
+  
+  // Create a fresh copy of the pool to avoid mutations
+  pool = pool.slice();
   
   // Apply exposure control if enabled
   var availablePool = pool;
   if (APP_STATE.settings.exposureControl) {
     availablePool = pool.filter(function(q) {
-      return !APP_STATE.usedItemIds.has(q.id);
+      return !APP_STATE.usedItemIds.has(q.id) && !APP_STATE.sessionUsedIds.has(q.id);
     });
     
     if (availablePool.length < count) {
       showToast('⚠️ Bank exhausted for ' + section + '. Using all remaining unique items.', 'warning');
-      // Use all remaining
+      // Use all remaining unique to session
       availablePool = pool.filter(function(q) {
-        return !APP_STATE.usedItemIds.has(q.id);
+        return !APP_STATE.sessionUsedIds.has(q.id);
       });
       if (availablePool.length === 0) {
         // Last resort: use all
@@ -433,16 +439,16 @@ async function startFullTest() {
       throw new Error('Invalid section order: ' + orderValue);
     }
     
-    // Initialize full test run
+    // Log for mobile debugging
+    console.log('Starting full test with order:', orderValue, 'Queue:', queue);
+    
+    // Initialize full test run and clear session IDs
+    APP_STATE.sessionUsedIds = new Set();
     window.currentRun = {
       queue: queue,
       index: 0,
       sessions: {}
     };
-    
-    // Keep UI dropdowns aligned with the order and lock section select
-    updateSectionSelectValue(queue[0]);
-    setSectionSelectEnabled(false);
 
     // Start first section
     startNextSectionInQueue();
@@ -466,12 +472,10 @@ function startNextSectionInQueue() {
     // Test complete
     showToast('🎉 Full test complete!', 'success');
     window.currentRun = null;
-    setSectionSelectEnabled(true);
     return;
   }
   
   const section = window.currentRun.queue[window.currentRun.index];
-  updateSectionSelectValue(section);
   const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
   
   try {
@@ -493,6 +497,13 @@ function startSingleSection(section, timerMinutes) {
     throw new Error('Banks not loaded. Please reload banks first.');
   }
   
+  // Validate section name
+  if (!window.BANKS[section]) {
+    console.error('Invalid section name:', section);
+    console.error('Available sections:', Object.keys(window.BANKS));
+    throw new Error('Invalid section: ' + section);
+  }
+  
   const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
   
   // Assemble section
@@ -501,6 +512,9 @@ function startSingleSection(section, timerMinutes) {
   if (items.length === 0) {
     throw new Error('Failed to assemble questions for ' + section);
   }
+  
+  // Log for debugging mobile issues
+  console.log('Starting section:', section, 'with', items.length, 'questions');
   
   // Reset state
   APP_STATE.currentSection = section;
@@ -511,7 +525,7 @@ function startSingleSection(section, timerMinutes) {
   APP_STATE.editsRemaining = 3;
   APP_STATE.editHistory = {};
   APP_STATE.timerSeconds = timerMinutes * 60;
-  APP_STATE.sessionUsedIds = new Set();
+  // Note: Don't reset sessionUsedIds here - keep track across sections in same test
   
   // Mark as used in session
   items.forEach(function(q) {
@@ -544,6 +558,9 @@ async function startSingle(section) {
       showToast('Loading question banks...', 'info');
       await loadBanks();
     }
+    
+    // Clear session IDs when starting a standalone section
+    APP_STATE.sessionUsedIds = new Set();
     
     const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
     startSingleSection(section, timerMinutes);
@@ -1348,21 +1365,8 @@ function initEventListeners() {
   document.getElementById('backToSetupBtn').addEventListener('click', function() {
     showScreen('setupScreen');
     loadHistoryOnSetup();
-    setSectionSelectEnabled(true);
   });
 
-  // Keep section dropdown in sync with order selection (informational only)
-  var orderSelect = document.getElementById('orderSelect');
-  if (orderSelect) {
-    orderSelect.addEventListener('change', function(e) {
-      var val = e.target.value;
-      var first;
-      if (val === 'QVD' || val === 'QDV') first = 'Quant';
-      else if (val === 'VQD' || val === 'VDQ') first = 'Verbal';
-      else first = 'Data Insights';
-      updateSectionSelectValue(first);
-    });
-  }
   
   // Modals
   document.getElementById('closeScratchpad').addEventListener('click', function() { closeModal('scratchpadModal'); });
@@ -1416,8 +1420,6 @@ async function init() {
   initEventListeners();
   initCalculator();
   loadHistoryOnSetup();
-  // Section dropdown is informational only; keep disabled
-  setSectionSelectEnabled(false);
   
   // Load banks
   try {
@@ -1437,20 +1439,3 @@ async function init() {
 // Start app when DOM is ready
 window.addEventListener('DOMContentLoaded', init);
 
-// Helpers to keep Section dropdown as a function of order
-function updateSectionSelectValue(section) {
-  var el = document.getElementById('sectionSelect');
-  if (!el) return;
-  for (var i = 0; i < el.options.length; i++) {
-    if (el.options[i].value === section) {
-      el.selectedIndex = i;
-      break;
-    }
-  }
-}
-
-function setSectionSelectEnabled(enabled) {
-  var el = document.getElementById('sectionSelect');
-  if (!el) return;
-  el.disabled = !enabled;
-}
