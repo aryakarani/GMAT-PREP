@@ -325,35 +325,39 @@ function getNextQuestion() {
 // SESSION MANAGEMENT
 // ========================================
 
-async function startSession() {
+/**
+ * Universal start logic for a practice section.
+ * Loads banks if needed, assembles the section, starts timer, and renders.
+ * @param {string} section Optional explicit section name (Quant | Verbal | Data Insights)
+ */
+async function startPractice(section) {
   try {
-    const section = document.getElementById('sectionSelect').value;
-    const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
-    
-    const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
-    let available = APP_STATE.questionBanks[section]?.length || 0;
-    
+    const selectedSection = section || document.getElementById('sectionSelect').value;
+    const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10) || 45;
+
+    const sectionSize = selectedSection === 'Quant' ? 21 : (selectedSection === 'Verbal' ? 23 : 20);
+    let available = APP_STATE.questionBanks[selectedSection]?.length || 0;
+
     // Lazy-load banks if not ready
     if (available === 0) {
       showToast('Loading question banks…', 'info');
-      
       try {
         await loadBanks();
-        available = APP_STATE.questionBanks[section]?.length || 0;
+        available = APP_STATE.questionBanks[selectedSection]?.length || 0;
       } catch (loadError) {
-        console.error('Failed to load banks in startSession:', loadError);
-        showToast('Failed to load question banks. Please check your connection and try again.', 'error');
+        console.error('Start practice failed while loading banks:', loadError);
+        showToast('⚠️ Bank not found', 'error');
         return;
       }
     }
-    
-    if (available < sectionSize) {
-      showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
+
+    if (available === 0) {
+      showToast('⚠️ Bank not found', 'error');
       return;
     }
-    
+
     // Reset state
-    APP_STATE.currentSection = section;
+    APP_STATE.currentSection = selectedSection;
     APP_STATE.currentQuestionIndex = 0;
     APP_STATE.responses = {};
     APP_STATE.flags = new Set();
@@ -363,10 +367,10 @@ async function startSession() {
     APP_STATE.sessionUsedIds = new Set();
     
     // Sample questions for this session
-    APP_STATE.sectionQuestions = sampleQuestions(section, sectionSize);
-    
+    APP_STATE.sectionQuestions = sampleQuestions(selectedSection, sectionSize);
+
     if (APP_STATE.sectionQuestions.length === 0) {
-      showToast('Failed to load questions. Please try reloading the banks.', 'error');
+      showToast('⚠️ No questions loaded', 'error');
       return;
     }
     
@@ -375,7 +379,9 @@ async function startSession() {
     
     // Show/hide calculator based on section
     const calcBtn = document.getElementById('calculatorBtn');
-    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
+    if (calcBtn) {
+      calcBtn.style.display = selectedSection === 'Data Insights' ? 'inline-block' : 'none';
+    }
     
     // Start timer
     startTimer();
@@ -384,10 +390,18 @@ async function startSession() {
     showScreen('questionScreen');
     renderQuestion();
     updateTopBar();
+    
+    showToast(`✅ ${selectedSection} test started with ${APP_STATE.sectionQuestions.length} unique questions`);
   } catch (error) {
-    console.error('Error starting session:', error);
-    showToast('Failed to start practice session: ' + error.message, 'error');
+    console.error('Start practice failed:', error);
+    showToast(`⚠️ ${error.message}`, 'error');
   }
+}
+
+// Backwards-compatible wrapper for existing UI
+async function startSession() {
+  const section = document.getElementById('sectionSelect').value;
+  return startPractice(section);
 }
 
 function startTimer() {
@@ -1083,6 +1097,19 @@ function closeModal(modalId) {
 function initEventListeners() {
   // Setup screen
   document.getElementById('startBtn').addEventListener('click', startSession);
+  // Optional direct section buttons if present in DOM
+  const startQuantBtn = document.getElementById('startQuantBtn');
+  if (startQuantBtn) {
+    startQuantBtn.addEventListener('click', () => startPractice('Quant'));
+  }
+  const startVerbalBtn = document.getElementById('startVerbalBtn');
+  if (startVerbalBtn) {
+    startVerbalBtn.addEventListener('click', () => startPractice('Verbal'));
+  }
+  const startDIbtn = document.getElementById('startDIbtn');
+  if (startDIbtn) {
+    startDIbtn.addEventListener('click', () => startPractice('Data Insights'));
+  }
   document.getElementById('resetBankBtn').addEventListener('click', resetBankExposure);
   document.getElementById('bankStatsBtn').addEventListener('click', showBankStats);
   document.getElementById('reloadBankBtn').addEventListener('click', () => {
