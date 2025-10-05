@@ -287,6 +287,80 @@ function shuffle(array) {
 }
 
 /**
+ * Simple non-repeating sampler
+ */
+function sampleWithoutReplacement(pool, count) {
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, pool.length));
+}
+
+/**
+ * Universal start logic for practice tests
+ */
+async function startPractice(section) {
+  try {
+    // Check if banks are already loaded, if not load them
+    let sectionItems = APP_STATE.questionBanks[section];
+    
+    if (!sectionItems || sectionItems.length === 0) {
+      // Determine which bank file to load
+      const fileMap = {
+        Quant: "./data/bank_quant.json",
+        Verbal: "./data/bank_verbal.json",
+        "Data Insights": "./data/bank_di.json"
+      };
+      const res = await fetch(fileMap[section]);
+      if (!res.ok) throw new Error("Bank not found");
+      const bank = await res.json();
+
+      // Store in APP_STATE for consistency
+      APP_STATE.questionBanks[section] = bank.items || [];
+      sectionItems = APP_STATE.questionBanks[section];
+    }
+
+    // Filter to this section
+    sectionItems = sectionItems.filter(q => q.section === section);
+    if (!sectionItems.length) throw new Error("No questions loaded");
+
+    // Random weighted sampling by difficulty
+    const sampleCount = section === "Quant" ? 21 : section === "Verbal" ? 23 : 20;
+    const picked = sampleWithoutReplacement(sectionItems, sampleCount);
+
+    // Build current session
+    const timerMinutes = parseInt(document.getElementById('timerSelect')?.value || '45', 10);
+    APP_STATE.currentSection = section;
+    APP_STATE.sectionQuestions = picked;
+    APP_STATE.currentQuestionIndex = 0;
+    APP_STATE.responses = {};
+    APP_STATE.flags = new Set();
+    APP_STATE.editsRemaining = 3;
+    APP_STATE.editHistory = {};
+    APP_STATE.timerSeconds = timerMinutes * 60;
+    APP_STATE.sessionUsedIds = new Set();
+
+    // Mark as used in session
+    picked.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
+
+    // Show/hide calculator based on section
+    const calcBtn = document.getElementById('calculatorBtn');
+    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
+
+    // Start timer
+    startTimer();
+
+    // Show question screen
+    showScreen('questionScreen');
+    renderQuestion();
+    updateTopBar();
+    
+    showToast(`✅ ${section} test started with ${picked.length} unique questions`);
+  } catch (err) {
+    console.error("Start practice failed:", err);
+    showToast(`⚠️ ${err.message}`, 'error');
+  }
+}
+
+/**
  * Get next question with heuristic difficulty routing
  */
 function getNextQuestion() {
@@ -1089,6 +1163,11 @@ function initEventListeners() {
     loadBanks();
     showToast('Banks reloaded', 'success');
   });
+  
+  // Section-specific start buttons
+  document.getElementById('startQuantBtn').addEventListener('click', () => startPractice('Quant'));
+  document.getElementById('startVerbalBtn').addEventListener('click', () => startPractice('Verbal'));
+  document.getElementById('startDIbtn').addEventListener('click', () => startPractice('Data Insights'));
   
   // Settings
   document.getElementById('heuristicScalingCheck').addEventListener('change', (e) => {
