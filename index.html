@@ -13,7 +13,7 @@
     <div class="container">
       <header class="app-header">
         <h1>📊 GMAT Focus Practice — Solo Trainer</h1>
-        <p class="subtitle">Original GMAT-style questions • Multi-stage adaptivity • Framework-free</p>
+        <p class="subtitle">Original GMAT-style questions • Static banks • Heuristic routing</p>
       </header>
 
       <div class="setup-grid">
@@ -21,25 +21,22 @@
         <div class="card">
           <h2>📥 Question Bank</h2>
           <div class="bank-stats" id="bankStats">
-            <p><strong>Total Questions:</strong> <span id="totalItems">0</span></p>
+            <p><strong>Available / Total Questions:</strong> <span id="totalItems">0 / 0</span></p>
             <div class="section-counts">
-              <span>Quant: <strong id="quantCount">0</strong></span>
-              <span>Verbal: <strong id="verbalCount">0</strong></span>
-              <span>DI: <strong id="diCount">0</strong></span>
+              <span>Quant: <strong id="quantCount">0 / 0</strong></span>
+              <span>Verbal: <strong id="verbalCount">0 / 0</strong></span>
+              <span>DI: <strong id="diCount">0 / 0</strong></span>
             </div>
             <div class="difficulty-breakdown">
-              <span>θ &lt; -0.6 (Easy): <strong id="easyCount">0</strong></span>
-              <span>θ [-0.6, 0.6] (Medium): <strong id="mediumCount">0</strong></span>
-              <span>θ &gt; 0.6 (Hard): <strong id="hardCount">0</strong></span>
+              <span>Easy (E): <strong id="easyCount">0 / 0</strong></span>
+              <span>Medium (M): <strong id="mediumCount">0 / 0</strong></span>
+              <span>Hard (H): <strong id="hardCount">0 / 0</strong></span>
             </div>
-            <div class="theta-histogram" id="thetaHistogram"></div>
           </div>
           <div class="button-group">
-            <button id="importBtn" class="btn btn-primary">Import JSON/CSV</button>
-            <button id="exportBankBtn" class="btn btn-secondary">Export Bank</button>
-            <button id="installSampleBtn" class="btn btn-secondary">Install Sample Bank (24)</button>
-            <button id="bankStatsBtn" class="btn btn-secondary">Stats</button>
-            <input type="file" id="fileInput" accept=".json,.csv" style="display:none;">
+            <button id="reloadBankBtn" class="btn btn-primary">Reload Banks</button>
+            <button id="resetBankBtn" class="btn btn-secondary">Reset Exposure</button>
+            <button id="bankStatsBtn" class="btn btn-secondary">Bank Stats</button>
           </div>
         </div>
 
@@ -82,20 +79,8 @@
           <div class="settings-list">
             <div class="setting-item">
               <label>
-                <input type="checkbox" id="showThetaCheck">
-                Show θ (ability) chip in test (for debug)
-              </label>
-            </div>
-            <div class="setting-item">
-              <label>
                 <input type="checkbox" id="heuristicScalingCheck">
                 Enable heuristic scaled score estimate
-              </label>
-            </div>
-            <div class="setting-item">
-              <label>
-                <input type="checkbox" id="resetExposureCheck">
-                Reset exposure tracking (allow question re-use)
               </label>
             </div>
             <div class="setting-item">
@@ -131,7 +116,6 @@
         <span id="timerDisplay" class="timer">45:00</span>
       </div>
       <div class="top-bar-right">
-        <span id="thetaChip" class="theta-chip" style="display:none;">θ: 0.00</span>
         <span id="editsLeft" class="edits">Edits: 3</span>
         <button id="scratchpadBtn" class="btn btn-icon" title="Scratchpad">📝</button>
         <button id="calculatorBtn" class="btn btn-icon" title="Calculator" style="display:none;">🧮</button>

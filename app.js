@@ -1,7 +1,7 @@
 // ========================================
 // GMAT Focus Practice — Solo Trainer
-// Rasch/Elo Adaptive with Calibrated Difficulty
-// Framework-free, multi-stage adaptive testing
+// Static Banks with Heuristic Routing
+// Framework-free, offline-capable
 // ========================================
 
 'use strict';
@@ -11,14 +11,12 @@
 // ========================================
 
 const APP_STATE = {
-  questionBank: [],           // All loaded questions
-  itemStats: new Map(),       // Map<id, {attempts, correct, theta}>
-  currentSection: null,       // 'Quant', 'Verbal', 'Data Insights'
-  currentTest: {              // ✅ Assembled test items only (rendering guard)
-    Quant: { items: [], userTheta: 0.0 },
-    Verbal: { items: [], userTheta: 0.0 },
-    'Data Insights': { items: [], userTheta: 0.0 }
+  questionBanks: {
+    Quant: [],
+    Verbal: [],
+    'Data Insights': []
   },
+  currentSection: null,
   sectionQuestions: [],       // Current section's assembled items
   currentQuestionIndex: 0,
   responses: {},              // { questionIndex: answerIndex }
@@ -27,15 +25,12 @@ const APP_STATE = {
   editHistory: {},
   timerSeconds: 0,
   timerInterval: null,
-  userTheta: 0.0,            // Current user ability estimate
-  blockIndex: 0,
-  blockSize: 4,
-  usedItemIds: new Set(),
+  sessionUsedIds: new Set(),  // IDs used in current test
+  usedItemIds: new Set(),     // IDs used across sessions (localStorage)
   currentAttempt: null,
   settings: {
-    showTheta: false,
-    scaledScoreEnabled: false,
     exposureControl: true,
+    scaledScoreEnabled: false,
     scaledMapping: [
       { pct: 55, score: 605 },
       { pct: 65, score: 655 },
@@ -45,213 +40,6 @@ const APP_STATE = {
     ]
   }
 };
-
-// ========================================
-// INDEXEDDB / LOCALSTORAGE ABSTRACTION
-// ========================================
-
-const DB = {
-  dbName: 'GMATFocusDB',
-  dbVersion: 2,
-  db: null,
-
-  async init() {
-    return new Promise((resolve, reject) => {
-      if (!window.indexedDB) {
-        console.warn('IndexedDB not available, falling back to localStorage');
-        resolve(false);
-        return;
-      }
-
-      const request = indexedDB.open(this.dbName, this.dbVersion);
-
-      request.onerror = () => {
-        console.warn('IndexedDB failed, falling back to localStorage');
-        resolve(false);
-      };
-
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        resolve(true);
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        
-        if (!db.objectStoreNames.contains('questions')) {
-          db.createObjectStore('questions', { keyPath: 'id' });
-        }
-        
-        if (!db.objectStoreNames.contains('stats')) {
-          db.createObjectStore('stats', { keyPath: 'id' });
-        }
-      };
-    });
-  },
-
-  async saveQuestions(questions) {
-    if (this.db) {
-      const tx = this.db.transaction('questions', 'readwrite');
-      const store = tx.objectStore('questions');
-      await store.clear();
-      for (const q of questions) {
-        await store.put(q);
-      }
-      return new Promise((resolve) => {
-        tx.oncomplete = () => resolve();
-      });
-    } else {
-      localStorage.setItem('questionBank', JSON.stringify(questions));
-    }
-  },
-
-  async loadQuestions() {
-    if (this.db) {
-      return new Promise((resolve, reject) => {
-        const tx = this.db.transaction('questions', 'readonly');
-        const store = tx.objectStore('questions');
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    } else {
-      const stored = localStorage.getItem('questionBank');
-      return stored ? JSON.parse(stored) : [];
-    }
-  },
-
-  /**
-   * Item stats tracking for Rasch/Elo calibration
-   * Schema: { id, attempts, correct, theta }
-   */
-  async saveStats(statsMap) {
-    if (this.db) {
-      const tx = this.db.transaction('stats', 'readwrite');
-      const store = tx.objectStore('stats');
-      for (const [id, stat] of statsMap.entries()) {
-        await store.put({ id, ...stat });
-      }
-      return new Promise((resolve) => {
-        tx.oncomplete = () => resolve();
-      });
-    } else {
-      const obj = Object.fromEntries(statsMap);
-      localStorage.setItem('itemStats', JSON.stringify(obj));
-    }
-  },
-
-  async loadStats() {
-    if (this.db) {
-      return new Promise((resolve, reject) => {
-        const tx = this.db.transaction('stats', 'readonly');
-        const store = tx.objectStore('stats');
-        const request = store.getAll();
-        request.onsuccess = () => {
-          const map = new Map();
-          request.result.forEach(s => {
-            map.set(s.id, { attempts: s.attempts, correct: s.correct, theta: s.theta });
-          });
-          resolve(map);
-        };
-        request.onerror = () => reject(request.error);
-      });
-    } else {
-      const stored = localStorage.getItem('itemStats');
-      if (stored) {
-        const obj = JSON.parse(stored);
-        return new Map(Object.entries(obj));
-      }
-      return new Map();
-    }
-  }
-};
-
-// ========================================
-// RASCH/ELO CALIBRATION
-// ========================================
-
-/**
- * Initialize theta for a new item based on difficulty tag
- * E = -1.0, M = 0.0, H = +1.0
- */
-function getInitialTheta(difficulty) {
-  if (difficulty === 'E') return -1.0;
-  if (difficulty === 'H') return 1.0;
-  return 0.0; // M
-}
-
-/**
- * Calculate probability of correct response using 1PL Rasch model
- * p_correct = 1 / (1 + exp(-(userTheta - itemTheta)))
- */
-function raschProbability(userTheta, itemTheta) {
-  return 1.0 / (1.0 + Math.exp(-(userTheta - itemTheta)));
-}
-
-/**
- * Adaptive learning rate: start at 0.15, decay to 0.05 with attempts
- */
-function getLearningRate(attempts) {
-  if (attempts < 5) return 0.15;
-  if (attempts < 20) return 0.10;
-  return 0.05;
-}
-
-/**
- * Update item theta after user response (Elo-style update)
- * theta_next = theta + k * (outcome - p_correct)
- * where outcome = 1 if correct, 0 if incorrect
- */
-function updateItemTheta(itemId, userTheta, wasCorrect) {
-  let stat = APP_STATE.itemStats.get(itemId);
-  
-  if (!stat) {
-    // Initialize from bank
-    const item = APP_STATE.questionBank.find(q => q.id === itemId);
-    stat = {
-      attempts: 0,
-      correct: 0,
-      theta: item ? getInitialTheta(item.difficulty) : 0.0
-    };
-    APP_STATE.itemStats.set(itemId, stat);
-  }
-  
-  const p = raschProbability(userTheta, stat.theta);
-  const k = getLearningRate(stat.attempts);
-  const outcome = wasCorrect ? 1 : 0;
-  
-  // Update theta
-  stat.theta += k * (outcome - p);
-  stat.attempts++;
-  if (wasCorrect) stat.correct++;
-  
-  // Save to IndexedDB (async, non-blocking)
-  DB.saveStats(APP_STATE.itemStats).catch(err => 
-    console.warn('Failed to save stats:', err)
-  );
-  
-  return stat.theta;
-}
-
-/**
- * Update user ability theta after response (mirrored update)
- * θ_user_next = θ_user + k_user * (outcome - p_correct)
- */
-function updateUserTheta(userTheta, itemTheta, wasCorrect, attempts) {
-  const p = raschProbability(userTheta, itemTheta);
-  const k = getLearningRate(attempts);
-  const outcome = wasCorrect ? 1 : 0;
-  
-  return userTheta + k * (outcome - p);
-}
-
-/**
- * Get effective theta for an item (from stats if available, else initial)
- */
-function getItemTheta(itemId, difficulty) {
-  const stat = APP_STATE.itemStats.get(itemId);
-  return stat ? stat.theta : getInitialTheta(difficulty);
-}
 
 // ========================================
 // UTILITY FUNCTIONS
@@ -284,398 +72,230 @@ function formatTime(seconds) {
 // QUESTION BANK MANAGEMENT
 // ========================================
 
-async function loadSampleData() {
+async function loadBanks() {
   try {
-    const response = await fetch('./data/questions.sample.json');
-    const data = await response.json();
-    return data.items || [];
-  } catch (err) {
-    console.error('Failed to load sample data:', err);
-    return [];
-  }
-}
-
-async function initializeBank() {
-  await DB.init();
-  
-  let questions = await DB.loadQuestions();
-  
-  // Load item stats
-  APP_STATE.itemStats = await DB.loadStats();
-  
-  // Load settings
-  const savedSettings = localStorage.getItem('settings');
-  if (savedSettings) {
-    APP_STATE.settings = { ...APP_STATE.settings, ...JSON.parse(savedSettings) };
-  }
-  
-  // Load used item IDs
-  const usedIds = localStorage.getItem('usedItemIds');
-  if (usedIds) {
-    APP_STATE.usedItemIds = new Set(JSON.parse(usedIds));
-  }
-  
-  // If empty bank, load sample
-  if (questions.length === 0) {
-    questions = await loadSampleData();
-    if (questions.length > 0) {
-      await DB.saveQuestions(questions);
-      showToast('Sample bank installed (24 items)', 'success');
+    const [quantRes, verbalRes, diRes] = await Promise.all([
+      fetch('./data/bank_quant.json'),
+      fetch('./data/bank_verbal.json'),
+      fetch('./data/bank_di.json')
+    ]);
+    
+    const [quantData, verbalData, diData] = await Promise.all([
+      quantRes.json(),
+      verbalRes.json(),
+      diRes.json()
+    ]);
+    
+    APP_STATE.questionBanks.Quant = quantData.items || [];
+    APP_STATE.questionBanks.Verbal = verbalData.items || [];
+    APP_STATE.questionBanks['Data Insights'] = diData.items || [];
+    
+    // Load used item IDs from localStorage
+    const usedIds = localStorage.getItem('usedItemIds');
+    if (usedIds) {
+      APP_STATE.usedItemIds = new Set(JSON.parse(usedIds));
     }
+    
+    // Load settings
+    const savedSettings = localStorage.getItem('settings');
+    if (savedSettings) {
+      APP_STATE.settings = { ...APP_STATE.settings, ...JSON.parse(savedSettings) };
+    }
+    
+    updateBankStats();
+    showToast('Question banks loaded successfully', 'success');
+  } catch (err) {
+    console.error('Failed to load banks:', err);
+    showToast('Failed to load question banks', 'error');
   }
-  
-  APP_STATE.questionBank = questions;
-  updateBankStats();
-  
-  // Apply settings to UI
-  document.getElementById('showThetaCheck').checked = APP_STATE.settings.showTheta;
-  document.getElementById('heuristicScalingCheck').checked = APP_STATE.settings.scaledScoreEnabled;
-  document.getElementById('exposureControlCheck').checked = APP_STATE.settings.exposureControl;
 }
 
 /**
- * Update bank statistics with theta-based difficulty bins
- * Easy: theta < -0.6, Medium: [-0.6, 0.6], Hard: > 0.6
+ * Update bank statistics display
  */
 function updateBankStats() {
-  const total = APP_STATE.questionBank.length;
+  const quantTotal = APP_STATE.questionBanks.Quant.length;
+  const verbalTotal = APP_STATE.questionBanks.Verbal.length;
+  const diTotal = APP_STATE.questionBanks['Data Insights'].length;
+  const totalItems = quantTotal + verbalTotal + diTotal;
   
-  // Section counts
-  const quantCount = APP_STATE.questionBank.filter(q => q.section === 'Quant').length;
-  const verbalCount = APP_STATE.questionBank.filter(q => q.section === 'Verbal').length;
-  const diCount = APP_STATE.questionBank.filter(q => q.section === 'Data Insights').length;
+  // Calculate remaining (unused) questions per section
+  const quantRemaining = APP_STATE.questionBanks.Quant.filter(q => !APP_STATE.usedItemIds.has(q.id)).length;
+  const verbalRemaining = APP_STATE.questionBanks.Verbal.filter(q => !APP_STATE.usedItemIds.has(q.id)).length;
+  const diRemaining = APP_STATE.questionBanks['Data Insights'].filter(q => !APP_STATE.usedItemIds.has(q.id)).length;
   
-  // Theta-based difficulty bins
-  let easyCount = 0, mediumCount = 0, hardCount = 0;
+  // Calculate by difficulty
+  const allQuestions = [
+    ...APP_STATE.questionBanks.Quant,
+    ...APP_STATE.questionBanks.Verbal,
+    ...APP_STATE.questionBanks['Data Insights']
+  ];
   
-  APP_STATE.questionBank.forEach(q => {
-    const theta = getItemTheta(q.id, q.difficulty);
-    if (theta < -0.6) easyCount++;
-    else if (theta > 0.6) hardCount++;
-    else mediumCount++;
-  });
+  const easyTotal = allQuestions.filter(q => q.difficulty === 'E').length;
+  const mediumTotal = allQuestions.filter(q => q.difficulty === 'M').length;
+  const hardTotal = allQuestions.filter(q => q.difficulty === 'H').length;
   
-  document.getElementById('totalItems').textContent = total;
-  document.getElementById('quantCount').textContent = quantCount;
-  document.getElementById('verbalCount').textContent = verbalCount;
-  document.getElementById('diCount').textContent = diCount;
-  document.getElementById('easyCount').textContent = easyCount;
-  document.getElementById('mediumCount').textContent = mediumCount;
-  document.getElementById('hardCount').textContent = hardCount;
+  const easyRemaining = allQuestions.filter(q => q.difficulty === 'E' && !APP_STATE.usedItemIds.has(q.id)).length;
+  const mediumRemaining = allQuestions.filter(q => q.difficulty === 'M' && !APP_STATE.usedItemIds.has(q.id)).length;
+  const hardRemaining = allQuestions.filter(q => q.difficulty === 'H' && !APP_STATE.usedItemIds.has(q.id)).length;
   
-  renderThetaHistogram();
+  document.getElementById('totalItems').textContent = `${totalItems - APP_STATE.usedItemIds.size} / ${totalItems}`;
+  document.getElementById('quantCount').textContent = `${quantRemaining} / ${quantTotal}`;
+  document.getElementById('verbalCount').textContent = `${verbalRemaining} / ${verbalTotal}`;
+  document.getElementById('diCount').textContent = `${diRemaining} / ${diTotal}`;
+  document.getElementById('easyCount').textContent = `${easyRemaining} / ${easyTotal}`;
+  document.getElementById('mediumCount').textContent = `${mediumRemaining} / ${mediumTotal}`;
+  document.getElementById('hardCount').textContent = `${hardRemaining} / ${hardTotal}`;
 }
 
 /**
- * Render theta distribution histogram
+ * Reset bank exposure (clear used items)
  */
-function renderThetaHistogram() {
-  const container = document.getElementById('thetaHistogram');
-  container.innerHTML = '';
-  
-  if (APP_STATE.questionBank.length === 0) return;
-  
-  // Create 10 bins from -2 to +2
-  const bins = Array(10).fill(0);
-  const binWidth = 0.4; // each bin is 0.4 theta units
-  
-  APP_STATE.questionBank.forEach(q => {
-    const theta = getItemTheta(q.id, q.difficulty);
-    const binIdx = Math.floor((theta + 2) / binWidth);
-    const idx = Math.max(0, Math.min(9, binIdx));
-    bins[idx]++;
-  });
-  
-  const maxBin = Math.max(...bins, 1);
-  
-  bins.forEach((count, i) => {
-    const bar = document.createElement('div');
-    bar.className = 'theta-bar';
-    bar.style.height = `${(count / maxBin) * 100}%`;
-    bar.title = `θ ${(i * binWidth - 2).toFixed(1)} to ${((i + 1) * binWidth - 2).toFixed(1)}: ${count} items`;
-    container.appendChild(bar);
-  });
-}
-
-// ========================================
-// IMPORT / EXPORT
-// ========================================
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
-  const items = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    if (values.length < headers.length) continue;
-
-    const item = {};
-    headers.forEach((header, idx) => {
-      item[header] = values[idx] ? values[idx].trim() : '';
-    });
-
-    // Convert to normalized format
-    items.push({
-      id: item.id,
-      section: item.section,
-      type: item.type,
-      difficulty: item.difficulty,
-      skills: item.skills ? item.skills.split('|').map(s => s.trim()) : [],
-      prompt: item.prompt,
-      options: item.options ? item.options.split('|').map(o => o.trim()) : [],
-      answer: parseInt(item.answer, 10),
-      table: item.table_json ? JSON.parse(item.table_json) : null,
-      explanation: item.explanation || ''
-    });
+function resetBankExposure() {
+  if (confirm('Reset bank exposure? This will allow all questions to be used again.')) {
+    APP_STATE.usedItemIds.clear();
+    localStorage.removeItem('usedItemIds');
+    updateBankStats();
+    showToast('Bank exposure reset successfully', 'success');
   }
-
-  return items;
 }
 
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
+// ========================================
+// HEURISTIC ADAPTIVE SELECTION
+// ========================================
 
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+/**
+ * Calculate rolling accuracy over last N questions
+ */
+function calculateRollingAccuracy(lastN = 5) {
+  const answeredIndices = Object.keys(APP_STATE.responses)
+    .map(idx => parseInt(idx, 10))
+    .sort((a, b) => a - b)
+    .slice(-lastN);
+  
+  if (answeredIndices.length === 0) return 0.5; // Start at medium
+  
+  let correct = 0;
+  answeredIndices.forEach(idx => {
+    const question = APP_STATE.sectionQuestions[idx];
+    if (APP_STATE.responses[idx] === question.answer) {
+      correct++;
+    }
+  });
+  
+  return correct / answeredIndices.length;
+}
+
+/**
+ * Sample questions without replacement with difficulty routing
+ * @param {string} section - Section name
+ * @param {number} count - Number of questions needed
+ * @returns {Array} Selected questions
+ */
+function sampleQuestions(section, count) {
+  let pool = APP_STATE.questionBanks[section].filter(q => q.section === section);
+  
+  // Filter out used items if exposure control is enabled
+  if (APP_STATE.settings.exposureControl) {
+    pool = pool.filter(q => !APP_STATE.usedItemIds.has(q.id) && !APP_STATE.sessionUsedIds.has(q.id));
     
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
+    // If pool exhausted, show warning and use all available
+    if (pool.length < count) {
+      showToast('⚠️ Question bank exhausted, allowing some repeats', 'warning');
+      pool = APP_STATE.questionBanks[section].filter(q => !APP_STATE.sessionUsedIds.has(q.id));
     }
   }
   
-  result.push(current);
+  // Separate by difficulty
+  const easyPool = pool.filter(q => q.difficulty === 'E');
+  const mediumPool = pool.filter(q => q.difficulty === 'M');
+  const hardPool = pool.filter(q => q.difficulty === 'H');
+  
+  // Calculate target counts (30% E, 50% M, 20% H)
+  const easyTarget = Math.round(count * 0.30);
+  const mediumTarget = Math.round(count * 0.50);
+  const hardTarget = count - easyTarget - mediumTarget;
+  
+  // Sample from each difficulty bucket
+  const selected = [];
+  selected.push(...randomSample(easyPool, Math.min(easyTarget, easyPool.length)));
+  selected.push(...randomSample(mediumPool, Math.min(mediumTarget, mediumPool.length)));
+  selected.push(...randomSample(hardPool, Math.min(hardTarget, hardPool.length)));
+  
+  // If we didn't get enough, backfill from any available
+  if (selected.length < count) {
+    const remaining = pool.filter(q => !selected.includes(q));
+    selected.push(...randomSample(remaining, count - selected.length));
+  }
+  
+  // Shuffle to mix difficulties
+  return shuffle(selected).slice(0, count);
+}
+
+/**
+ * Random sample without replacement
+ */
+function randomSample(array, n) {
+  const result = [];
+  const used = new Set();
+  const max = Math.min(n, array.length);
+  
+  while (result.length < max) {
+    const idx = Math.floor(Math.random() * array.length);
+    if (!used.has(idx)) {
+      used.add(idx);
+      result.push(array[idx]);
+    }
+  }
+  
   return result;
 }
 
 /**
- * Import questions with validation
- * Supports both JSON and CSV formats
+ * Shuffle array (Fisher-Yates)
  */
-async function importQuestions(file) {
-  const text = await file.text();
-  let items = [];
-
-  try {
-    if (file.name.endsWith('.json')) {
-      const data = JSON.parse(text);
-      items = data.items || [];
-    } else if (file.name.endsWith('.csv')) {
-      items = parseCSV(text);
-    }
-
-    // Validate items
-    const validItems = items.filter(item => 
-      item.id && 
-      item.section && 
-      item.difficulty && 
-      item.prompt && 
-      Array.isArray(item.options) && 
-      item.options.length > 0 &&
-      typeof item.answer === 'number'
-    );
-
-    if (validItems.length === 0) {
-      showToast('No valid questions found in file', 'error');
-      return;
-    }
-
-    // Merge with existing bank (de-dupe by ID)
-    const existingIds = new Set(APP_STATE.questionBank.map(q => q.id));
-    const newItems = validItems.filter(item => !existingIds.has(item.id));
-    const updatedItems = validItems.filter(item => existingIds.has(item.id));
-
-    if (newItems.length === 0 && updatedItems.length === 0) {
-      showToast('No new or updated questions to import', 'warning');
-      return;
-    }
-
-    // Update existing items
-    if (updatedItems.length > 0) {
-      APP_STATE.questionBank = APP_STATE.questionBank.map(q => {
-        const updated = updatedItems.find(u => u.id === q.id);
-        return updated || q;
-      });
-    }
-
-    // Add new items
-    APP_STATE.questionBank.push(...newItems);
-    
-    await DB.saveQuestions(APP_STATE.questionBank);
-    updateBankStats();
-    
-    showToast(`Imported ${newItems.length} new, ${updatedItems.length} updated`, 'success');
-  } catch (err) {
-    showToast('Import failed: ' + err.message, 'error');
-    console.error('Import error:', err);
+function shuffle(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
   }
+  return result;
 }
 
-function exportBank() {
-  const data = {
-    meta: {
-      version: 1,
-      source: 'GMAT Focus Solo Trainer',
-      createdAt: new Date().toISOString(),
-      totalItems: APP_STATE.questionBank.length
-    },
-    items: APP_STATE.questionBank
-  };
-
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `gmat-bank-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+/**
+ * Get next question with heuristic difficulty routing
+ */
+function getNextQuestion() {
+  const rollingAcc = calculateRollingAccuracy(5);
+  const pool = APP_STATE.questionBanks[APP_STATE.currentSection].filter(
+    q => !APP_STATE.sessionUsedIds.has(q.id) && 
+         (APP_STATE.settings.exposureControl ? !APP_STATE.usedItemIds.has(q.id) : true)
+  );
   
-  showToast('Bank exported successfully', 'success');
-}
-
-function exportAttempt() {
-  if (!APP_STATE.currentAttempt) return;
-
-  const blob = new Blob([JSON.stringify(APP_STATE.currentAttempt, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `gmat-attempt-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  if (pool.length === 0) {
+    showToast('⚠️ Question bank exhausted, reset exposure', 'warning');
+    return null;
+  }
   
-  showToast('Attempt exported successfully', 'success');
-}
-
-async function installSampleBank() {
-  const questions = await loadSampleData();
-  if (questions.length > 0) {
-    APP_STATE.questionBank = questions;
-    await DB.saveQuestions(questions);
-    updateBankStats();
-    showToast('Sample bank installed (24 items)', 'success');
+  // Determine difficulty preference based on rolling accuracy
+  let targetDifficulty;
+  if (rollingAcc >= 0.80) {
+    targetDifficulty = 'H'; // High accuracy -> harder questions
+  } else if (rollingAcc <= 0.50) {
+    targetDifficulty = 'E'; // Low accuracy -> easier questions
   } else {
-    showToast('Failed to load sample bank', 'error');
-  }
-}
-
-// ========================================
-// ADAPTIVE TEST ASSEMBLY (Rasch/Elo)
-// ========================================
-
-/**
- * Adaptive selection: choose items whose theta is nearest to userTheta
- * With content balancing via skills and exposure control
- */
-function selectQuestionsAdaptive(section, totalCount, userTheta) {
-  const blockSize = section === 'Data Insights' ? 5 : 4;
-  const totalBlocks = Math.ceil(totalCount / blockSize);
-  
-  const selectedItems = [];
-  let currentUserTheta = userTheta;
-  
-  // Content balancing: track which skill categories we've covered
-  const requiredSkills = getRequiredSkills(section);
-  const coveredSkills = new Set();
-  
-  for (let blockNum = 0; blockNum < totalBlocks; blockNum++) {
-    const isLastBlock = blockNum === totalBlocks - 1;
-    const questionsNeeded = isLastBlock ? (totalCount - selectedItems.length) : blockSize;
-    
-    // Get available pool for this section
-    let pool = APP_STATE.questionBank.filter(q => q.section === section);
-    
-    // Exposure control: filter out used items
-    if (APP_STATE.settings.exposureControl) {
-      pool = pool.filter(q => !APP_STATE.usedItemIds.has(q.id));
-    }
-    
-    // If pool exhausted, backfill with warning
-    if (pool.length < questionsNeeded) {
-      showToast('⚠️ Question pool exhausted, allowing repeats', 'warning');
-      pool = APP_STATE.questionBank.filter(q => q.section === section);
-    }
-    
-    // Sort pool by theta distance from currentUserTheta
-    pool.forEach(q => {
-      q._theta = getItemTheta(q.id, q.difficulty);
-      q._distance = Math.abs(q._theta - currentUserTheta);
-    });
-    pool.sort((a, b) => a._distance - b._distance);
-    
-    // Select items: prioritize nearest theta, but ensure skill diversity
-    const blockItems = [];
-    const neededSkillsForBlock = Array.from(requiredSkills).filter(s => !coveredSkills.has(s));
-    
-    // First pass: fulfill required skills
-    for (const skill of neededSkillsForBlock) {
-      if (blockItems.length >= questionsNeeded) break;
-      const candidate = pool.find(q => 
-        !blockItems.includes(q) && 
-        q.skills && q.skills.includes(skill)
-      );
-      if (candidate) {
-        blockItems.push(candidate);
-        candidate.skills?.forEach(s => coveredSkills.add(s));
-      }
-    }
-    
-    // Second pass: fill remaining with nearest theta
-    for (const q of pool) {
-      if (blockItems.length >= questionsNeeded) break;
-      if (!blockItems.includes(q)) {
-        blockItems.push(q);
-      }
-    }
-    
-    selectedItems.push(...blockItems);
-    
-    // Simulate block performance to estimate next theta (for pre-assembly)
-    // In reality, theta updates dynamically during test
-    currentUserTheta += (Math.random() - 0.5) * 0.3; // small random walk
+    targetDifficulty = 'M'; // Medium accuracy -> medium questions
   }
   
-  return selectedItems.slice(0, totalCount);
-}
-
-/**
- * Get required skills for content balancing per section
- */
-function getRequiredSkills(section) {
-  if (section === 'Quant') {
-    return new Set(['percent', 'algebra', 'ratio', 'geometry']);
-  } else if (section === 'Verbal') {
-    return new Set(['strengthen', 'weaken', 'inference', 'assumption']);
-  } else { // Data Insights
-    return new Set(['table', 'graphics', 'two-part', 'MSR']);
-  }
-}
-
-/**
- * Calculate block score for routing decision
- */
-function calculateBlockScore(blockStart, blockEnd) {
-  let correct = 0;
-  let total = 0;
-  
-  for (let i = blockStart; i < blockEnd && i < APP_STATE.sectionQuestions.length; i++) {
-    if (APP_STATE.responses[i] !== undefined) {
-      total++;
-      const question = APP_STATE.sectionQuestions[i];
-      if (APP_STATE.responses[i] === question.answer) {
-        correct++;
-      }
-    }
+  // Filter by preferred difficulty, with fallback
+  let candidates = pool.filter(q => q.difficulty === targetDifficulty);
+  if (candidates.length === 0) {
+    candidates = pool; // Fallback to any available
   }
   
-  return total > 0 ? (correct / total) : 0.5;
+  // Random selection within difficulty bucket
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 // ========================================
@@ -686,20 +306,11 @@ function startSession() {
   const section = document.getElementById('sectionSelect').value;
   const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
   
-  if (APP_STATE.questionBank.length === 0) {
-    showToast('Please import or install a question bank first', 'error');
-    return;
-  }
+  const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
+  const available = APP_STATE.questionBanks[section].length;
   
-  // Check if section has enough questions
-  const sectionPool = APP_STATE.questionBank.filter(q => q.section === section);
-  let sectionSize;
-  if (section === 'Quant') sectionSize = 21;
-  else if (section === 'Verbal') sectionSize = 23;
-  else sectionSize = 20; // Data Insights
-  
-  if (sectionPool.length < sectionSize) {
-    showToast(`Not enough ${section} questions in bank (need ${sectionSize}, have ${sectionPool.length})`, 'error');
+  if (available < sectionSize) {
+    showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
     return;
   }
   
@@ -711,26 +322,17 @@ function startSession() {
   APP_STATE.editsRemaining = 3;
   APP_STATE.editHistory = {};
   APP_STATE.timerSeconds = timerMinutes * 60;
-  APP_STATE.blockIndex = 0;
-  APP_STATE.blockSize = section === 'Data Insights' ? 5 : 4;
-  APP_STATE.userTheta = 0.0; // Start at medium difficulty
+  APP_STATE.sessionUsedIds = new Set();
   
-  // ✅ Adaptive selection: assemble test based on theta
-  APP_STATE.sectionQuestions = selectQuestionsAdaptive(section, sectionSize, APP_STATE.userTheta);
+  // Sample questions for this session
+  APP_STATE.sectionQuestions = sampleQuestions(section, sectionSize);
   
-  // ✅ Store in currentTest for rendering guard
-  APP_STATE.currentTest[section] = {
-    items: APP_STATE.sectionQuestions,
-    userTheta: APP_STATE.userTheta
-  };
+  // Mark as used in session
+  APP_STATE.sectionQuestions.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
   
   // Show/hide calculator based on section
   const calcBtn = document.getElementById('calculatorBtn');
   calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
-  
-  // Show/hide theta chip based on settings
-  const thetaChip = document.getElementById('thetaChip');
-  thetaChip.style.display = APP_STATE.settings.showTheta ? 'inline-block' : 'none';
   
   // Start timer
   startTimer();
@@ -760,11 +362,9 @@ function startTimer() {
 function handleTimeUp() {
   showToast('⏰ Time is up!', 'warning');
   
-  // If in question view, go to review
   if (document.getElementById('questionScreen').classList.contains('active')) {
     showReviewScreen();
   } else if (document.getElementById('reviewScreen').classList.contains('active')) {
-    // If already in review, auto-submit
     submitSection();
   }
 }
@@ -786,12 +386,9 @@ function updateTimerDisplay() {
 // QUESTION RENDERING
 // ========================================
 
-/**
- * ✅ Rendering guard: only use assembled test items from currentTest
- */
 function renderQuestion() {
   const idx = APP_STATE.currentQuestionIndex;
-  const question = APP_STATE.sectionQuestions[idx]; // ✅ Uses assembled set
+  const question = APP_STATE.sectionQuestions[idx];
   
   if (!question) return;
   
@@ -878,9 +475,6 @@ function renderQuestion() {
   document.getElementById('prevBtn').disabled = idx === 0;
 }
 
-/**
- * Edit-cap enforcement with Rasch/Elo theta updates
- */
 function selectAnswer(optIdx) {
   const idx = APP_STATE.currentQuestionIndex;
   const previousAnswer = APP_STATE.responses[idx];
@@ -889,7 +483,7 @@ function selectAnswer(optIdx) {
   if (previousAnswer !== undefined && previousAnswer !== optIdx) {
     if (APP_STATE.editsRemaining <= 0) {
       showToast('❌ No edits remaining! Cannot change answer.', 'error');
-      return; // ✅ Block change and revert
+      return;
     }
     
     APP_STATE.editsRemaining--;
@@ -898,23 +492,6 @@ function selectAnswer(optIdx) {
   
   // Set the answer
   APP_STATE.responses[idx] = optIdx;
-  
-  // ✅ Update theta estimates (item and user)
-  const question = APP_STATE.sectionQuestions[idx];
-  const wasCorrect = optIdx === question.answer;
-  const itemTheta = getItemTheta(question.id, question.difficulty);
-  
-  // Update item theta
-  updateItemTheta(question.id, APP_STATE.userTheta, wasCorrect);
-  
-  // Update user theta
-  const totalAttempts = Object.keys(APP_STATE.responses).length;
-  APP_STATE.userTheta = updateUserTheta(APP_STATE.userTheta, itemTheta, wasCorrect, totalAttempts);
-  
-  // Update theta chip if visible
-  if (APP_STATE.settings.showTheta) {
-    document.getElementById('thetaChip').textContent = `θ: ${APP_STATE.userTheta.toFixed(2)}`;
-  }
   
   // Re-render to update selection
   renderQuestion();
@@ -925,17 +502,16 @@ function updateTopBar() {
   document.getElementById('sectionLabel').textContent = APP_STATE.currentSection;
   document.getElementById('editsLeft').textContent = `Edits: ${APP_STATE.editsRemaining}`;
   
-  // Update difficulty label based on current item theta
+  // Update difficulty label based on current question
   const idx = APP_STATE.currentQuestionIndex;
   if (idx < APP_STATE.sectionQuestions.length) {
     const question = APP_STATE.sectionQuestions[idx];
-    const theta = getItemTheta(question.id, question.difficulty);
     
     let diffLabel, diffClass;
-    if (theta < -0.6) {
+    if (question.difficulty === 'E') {
       diffLabel = 'Easy';
       diffClass = 'E';
-    } else if (theta > 0.6) {
+    } else if (question.difficulty === 'H') {
       diffLabel = 'Hard';
       diffClass = 'H';
     } else {
@@ -946,11 +522,6 @@ function updateTopBar() {
     const diffElement = document.getElementById('difficultyLabel');
     diffElement.textContent = diffLabel;
     diffElement.className = `difficulty-label ${diffClass}`;
-  }
-  
-  // Update theta chip
-  if (APP_STATE.settings.showTheta) {
-    document.getElementById('thetaChip').textContent = `θ: ${APP_STATE.userTheta.toFixed(2)}`;
   }
 }
 
@@ -987,14 +558,11 @@ function showReviewScreen() {
   renderReviewGrid();
 }
 
-/**
- * ✅ Review uses assembled test items only
- */
 function renderReviewGrid() {
   const grid = document.getElementById('reviewGrid');
   grid.innerHTML = '';
   
-  APP_STATE.sectionQuestions.forEach((q, idx) => { // ✅ Only assembled items
+  APP_STATE.sectionQuestions.forEach((q, idx) => {
     const item = document.createElement('div');
     item.className = 'review-item';
     
@@ -1032,23 +600,17 @@ function renderReviewGrid() {
 // RESULTS & SCALED SCORING
 // ========================================
 
-/**
- * Calculate heuristic scaled score using piecewise linear interpolation
- */
 function calculateScaledScore(percentage) {
   const mapping = APP_STATE.settings.scaledMapping.sort((a, b) => a.pct - b.pct);
   
-  // Below lowest point
   if (percentage <= mapping[0].pct) {
     return mapping[0].score;
   }
   
-  // Above highest point
   if (percentage >= mapping[mapping.length - 1].pct) {
     return mapping[mapping.length - 1].score;
   }
   
-  // Find enclosing points and interpolate
   for (let i = 0; i < mapping.length - 1; i++) {
     const p1 = mapping[i];
     const p2 = mapping[i + 1];
@@ -1059,13 +621,12 @@ function calculateScaledScore(percentage) {
     }
   }
   
-  return 705; // fallback
+  return 705;
 }
 
 function submitSection() {
   clearInterval(APP_STATE.timerInterval);
   
-  // ✅ Calculate score using assembled items only
   let correct = 0;
   let total = APP_STATE.sectionQuestions.length;
   
@@ -1078,11 +639,14 @@ function submitSection() {
   const percentage = Math.round((correct / total) * 100);
   const scaledScore = calculateScaledScore(percentage);
   
-  // Mark questions as used (exposure control)
+  // Mark questions as used
   APP_STATE.sectionQuestions.forEach(q => {
     APP_STATE.usedItemIds.add(q.id);
   });
   localStorage.setItem('usedItemIds', JSON.stringify([...APP_STATE.usedItemIds]));
+  
+  // Update bank stats
+  updateBankStats();
   
   // Save to history
   const result = {
@@ -1091,7 +655,6 @@ function submitSection() {
     total,
     percentage,
     scaledScore: APP_STATE.settings.scaledScoreEnabled ? scaledScore : null,
-    thetaUserEnd: APP_STATE.userTheta,
     timestamp: new Date().toISOString(),
     itemIds: APP_STATE.sectionQuestions.map(q => q.id),
     responses: APP_STATE.responses,
@@ -1104,14 +667,12 @@ function submitSection() {
   
   APP_STATE.currentAttempt = result;
   
-  // Show results
   showResultsScreen(result, history);
 }
 
 function showResultsScreen(result, history) {
   showScreen('resultsScreen');
   
-  // Render current result
   const resultsContent = document.getElementById('resultsContent');
   
   let html = `
@@ -1138,10 +699,6 @@ function showResultsScreen(result, history) {
   
   html += `
     <div class="result-stat">
-      <span class="result-stat-label">Final θ (Ability)</span>
-      <span class="result-stat-value">${result.thetaUserEnd.toFixed(2)}</span>
-    </div>
-    <div class="result-stat">
       <span class="result-stat-label">Edits Used</span>
       <span class="result-stat-value">${result.editsUsed} / 3</span>
     </div>
@@ -1149,7 +706,6 @@ function showResultsScreen(result, history) {
   
   resultsContent.innerHTML = html;
   
-  // Render history
   renderHistory('allHistoryContainer', history);
 }
 
@@ -1172,7 +728,6 @@ function renderHistory(containerId, history) {
         <th>Score</th>
         <th>%</th>
         <th>Scaled</th>
-        <th>Final θ</th>
       </tr>
     </thead>
     <tbody>
@@ -1191,7 +746,6 @@ function renderHistory(containerId, history) {
       <td>${h.correct}/${h.total}</td>
       <td>${h.percentage}%</td>
       <td>${h.scaledScore !== null ? h.scaledScore : '—'}</td>
-      <td>${h.thetaUserEnd ? h.thetaUserEnd.toFixed(2) : '—'}</td>
     `;
     
     tbody.appendChild(tr);
@@ -1206,6 +760,20 @@ function loadHistoryOnSetup() {
   renderHistory('historyContainer', history);
 }
 
+function exportAttempt() {
+  if (!APP_STATE.currentAttempt) return;
+
+  const blob = new Blob([JSON.stringify(APP_STATE.currentAttempt, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gmat-attempt-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  showToast('Attempt exported successfully', 'success');
+}
+
 // ========================================
 // BANK STATS MODAL
 // ========================================
@@ -1214,32 +782,44 @@ function showBankStats() {
   const modal = document.getElementById('bankStatsModal');
   const content = document.getElementById('bankStatsContent');
   
-  // Calculate comprehensive stats
-  const totalItems = APP_STATE.questionBank.length;
-  const totalAttempts = Array.from(APP_STATE.itemStats.values()).reduce((sum, s) => sum + s.attempts, 0);
-  const avgTheta = totalItems > 0 
-    ? APP_STATE.questionBank.reduce((sum, q) => sum + getItemTheta(q.id, q.difficulty), 0) / totalItems 
-    : 0;
+  const allQuestions = [
+    ...APP_STATE.questionBanks.Quant,
+    ...APP_STATE.questionBanks.Verbal,
+    ...APP_STATE.questionBanks['Data Insights']
+  ];
   
-  // Most answered items
-  const mostAnswered = Array.from(APP_STATE.itemStats.entries())
-    .sort((a, b) => b[1].attempts - a[1].attempts)
-    .slice(0, 10);
+  const totalItems = allQuestions.length;
+  const usedItems = allQuestions.filter(q => APP_STATE.usedItemIds.has(q.id)).length;
+  const remainingItems = totalItems - usedItems;
   
-  // Least answered items (with at least 1 attempt)
-  const leastAnswered = Array.from(APP_STATE.itemStats.entries())
-    .filter(([id, stat]) => stat.attempts > 0)
-    .sort((a, b) => a[1].attempts - b[1].attempts)
-    .slice(0, 10);
-  
-  // Section theta averages
+  // Per section stats
   const sections = ['Quant', 'Verbal', 'Data Insights'];
   const sectionStats = sections.map(sec => {
-    const items = APP_STATE.questionBank.filter(q => q.section === sec);
-    const avgTheta = items.length > 0
-      ? items.reduce((sum, q) => sum + getItemTheta(q.id, q.difficulty), 0) / items.length
-      : 0;
-    return { section: sec, count: items.length, avgTheta };
+    const items = APP_STATE.questionBanks[sec];
+    const used = items.filter(q => APP_STATE.usedItemIds.has(q.id)).length;
+    const remaining = items.length - used;
+    
+    // By difficulty
+    const easyTotal = items.filter(q => q.difficulty === 'E').length;
+    const mediumTotal = items.filter(q => q.difficulty === 'M').length;
+    const hardTotal = items.filter(q => q.difficulty === 'H').length;
+    
+    const easyRemaining = items.filter(q => q.difficulty === 'E' && !APP_STATE.usedItemIds.has(q.id)).length;
+    const mediumRemaining = items.filter(q => q.difficulty === 'M' && !APP_STATE.usedItemIds.has(q.id)).length;
+    const hardRemaining = items.filter(q => q.difficulty === 'H' && !APP_STATE.usedItemIds.has(q.id)).length;
+    
+    return {
+      section: sec,
+      total: items.length,
+      used,
+      remaining,
+      easyTotal,
+      mediumTotal,
+      hardTotal,
+      easyRemaining,
+      mediumRemaining,
+      hardRemaining
+    };
   });
   
   let html = `
@@ -1247,67 +827,40 @@ function showBankStats() {
       <div class="stat-card">
         <h4>Total Items</h4>
         <div class="stat-value">${totalItems}</div>
+        <div class="stat-detail">${remainingItems} remaining</div>
       </div>
       <div class="stat-card">
-        <h4>Total Attempts</h4>
-        <div class="stat-value">${totalAttempts}</div>
-      </div>
-      <div class="stat-card">
-        <h4>Avg Item θ</h4>
-        <div class="stat-value">${avgTheta.toFixed(2)}</div>
+        <h4>Used Items</h4>
+        <div class="stat-value">${usedItems}</div>
+        <div class="stat-detail">${Math.round((usedItems / totalItems) * 100)}% of bank</div>
       </div>
     </div>
     
-    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Section Averages</h3>
-    <div class="item-list">
+    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Section Breakdown</h3>
   `;
   
   sectionStats.forEach(s => {
     html += `
-      <div class="item-row">
-        <span><strong>${s.section}</strong> (${s.count} items)</span>
-        <span>Avg θ: ${s.avgTheta.toFixed(2)}</span>
+      <div class="section-stats-card">
+        <h4>${s.section}</h4>
+        <p><strong>Total:</strong> ${s.total} questions (${s.remaining} remaining)</p>
+        <div class="difficulty-grid">
+          <div class="difficulty-stat">
+            <span class="difficulty-label E">Easy</span>
+            <span>${s.easyRemaining} / ${s.easyTotal}</span>
+          </div>
+          <div class="difficulty-stat">
+            <span class="difficulty-label M">Medium</span>
+            <span>${s.mediumRemaining} / ${s.mediumTotal}</span>
+          </div>
+          <div class="difficulty-stat">
+            <span class="difficulty-label H">Hard</span>
+            <span>${s.hardRemaining} / ${s.hardTotal}</span>
+          </div>
+        </div>
       </div>
     `;
   });
-  
-  html += `</div>`;
-  
-  if (mostAnswered.length > 0) {
-    html += `
-      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top 10 Most Answered</h3>
-      <div class="item-list">
-    `;
-    mostAnswered.forEach(([id, stat]) => {
-      const item = APP_STATE.questionBank.find(q => q.id === id);
-      const accuracy = stat.attempts > 0 ? Math.round((stat.correct / stat.attempts) * 100) : 0;
-      html += `
-        <div class="item-row">
-          <span><strong>${id}</strong> ${item ? `(${item.section})` : ''}</span>
-          <span>${stat.attempts} attempts • ${accuracy}% correct • θ=${stat.theta.toFixed(2)}</span>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-  
-  if (leastAnswered.length > 0) {
-    html += `
-      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top 10 Least Answered</h3>
-      <div class="item-list">
-    `;
-    leastAnswered.forEach(([id, stat]) => {
-      const item = APP_STATE.questionBank.find(q => q.id === id);
-      const accuracy = stat.attempts > 0 ? Math.round((stat.correct / stat.attempts) * 100) : 0;
-      html += `
-        <div class="item-row">
-          <span><strong>${id}</strong> ${item ? `(${item.section})` : ''}</span>
-          <span>${stat.attempts} attempts • ${accuracy}% correct • θ=${stat.theta.toFixed(2)}</span>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
   
   content.innerHTML = html;
   openModal('bankStatsModal');
@@ -1473,33 +1026,15 @@ function closeModal(modalId) {
 
 function initEventListeners() {
   // Setup screen
-  document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('fileInput').click();
-  });
-  
-  document.getElementById('fileInput').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        await importQuestions(file);
-      } catch (err) {
-        showToast('Failed to import: ' + err.message, 'error');
-      }
-    }
-    e.target.value = '';
-  });
-  
-  document.getElementById('exportBankBtn').addEventListener('click', exportBank);
-  document.getElementById('installSampleBtn').addEventListener('click', installSampleBank);
-  document.getElementById('bankStatsBtn').addEventListener('click', showBankStats);
   document.getElementById('startBtn').addEventListener('click', startSession);
+  document.getElementById('resetBankBtn').addEventListener('click', resetBankExposure);
+  document.getElementById('bankStatsBtn').addEventListener('click', showBankStats);
+  document.getElementById('reloadBankBtn').addEventListener('click', () => {
+    loadBanks();
+    showToast('Banks reloaded', 'success');
+  });
   
   // Settings
-  document.getElementById('showThetaCheck').addEventListener('change', (e) => {
-    APP_STATE.settings.showTheta = e.target.checked;
-    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
-  });
-  
   document.getElementById('heuristicScalingCheck').addEventListener('change', (e) => {
     APP_STATE.settings.scaledScoreEnabled = e.target.checked;
     localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
@@ -1508,15 +1043,6 @@ function initEventListeners() {
   document.getElementById('exposureControlCheck').addEventListener('change', (e) => {
     APP_STATE.settings.exposureControl = e.target.checked;
     localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
-  });
-  
-  document.getElementById('resetExposureCheck').addEventListener('change', (e) => {
-    if (e.target.checked) {
-      APP_STATE.usedItemIds.clear();
-      localStorage.removeItem('usedItemIds');
-      showToast('Exposure tracking reset', 'success');
-      e.target.checked = false;
-    }
   });
   
   document.getElementById('editScaledMappingBtn').addEventListener('click', showScaledMappingEditor);
@@ -1594,10 +1120,15 @@ function initEventListeners() {
 // ========================================
 
 async function init() {
-  await initializeBank();
+  await loadBanks();
   initEventListeners();
   initCalculator();
   loadHistoryOnSetup();
+  
+  // Apply settings to UI
+  document.getElementById('heuristicScalingCheck').checked = APP_STATE.settings.scaledScoreEnabled;
+  document.getElementById('exposureControlCheck').checked = APP_STATE.settings.exposureControl;
+  
   showScreen('setupScreen');
 }
 
