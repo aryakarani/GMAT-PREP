@@ -325,6 +325,66 @@ function getNextQuestion() {
 // SESSION MANAGEMENT
 // ========================================
 
+// Simple non-repeating sampler
+function sampleWithoutReplacement(pool, count) {
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, pool.length));
+}
+
+// Universal start practice function with static logic
+async function startPractice(section) {
+  try {
+    // Determine which bank file to load
+    const fileMap = {
+      Quant: "./data/bank_quant.json",
+      Verbal: "./data/bank_verbal.json",
+      "Data Insights": "./data/bank_di.json"
+    };
+    const res = await fetch(fileMap[section]);
+    if (!res.ok) throw new Error("Bank not found");
+    const bank = await res.json();
+
+    // Filter to this section and shuffle
+    const sectionItems = bank.items.filter(q => q.section === section);
+    if (!sectionItems.length) throw new Error("No questions loaded");
+
+    // Random weighted sampling by difficulty
+    const sampleCount = section === "Quant" ? 21 : section === "Verbal" ? 23 : 20;
+    const picked = sampleWithoutReplacement(sectionItems, sampleCount);
+
+    // Build current session
+    APP_STATE.currentSection = section;
+    APP_STATE.sectionQuestions = picked;
+    APP_STATE.currentQuestionIndex = 0;
+    APP_STATE.responses = {};
+    APP_STATE.flags = new Set();
+    APP_STATE.editsRemaining = 3;
+    APP_STATE.editHistory = {};
+    APP_STATE.timerSeconds = 45 * 60; // Default 45 minutes
+    APP_STATE.sessionUsedIds = new Set();
+
+    // Mark questions as used in session
+    picked.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
+
+    // Show/hide calculator based on section
+    const calcBtn = document.getElementById('calculatorBtn');
+    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
+
+    // Start timer
+    startTimer();
+
+    // Show question screen
+    showScreen('questionScreen');
+    renderQuestion();
+    updateTopBar();
+    
+    showToast(`✅ ${section} test started with ${picked.length} unique questions`);
+  } catch (err) {
+    console.error("Start practice failed:", err);
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
 async function startSession() {
   try {
     const section = document.getElementById('sectionSelect').value;
@@ -1089,6 +1149,11 @@ function initEventListeners() {
     loadBanks();
     showToast('Banks reloaded', 'success');
   });
+  
+  // Individual section buttons
+  document.getElementById('startQuantBtn').addEventListener('click', () => startPractice('Quant'));
+  document.getElementById('startVerbalBtn').addEventListener('click', () => startPractice('Verbal'));
+  document.getElementById('startDIbtn').addEventListener('click', () => startPractice('Data Insights'));
   
   // Settings
   document.getElementById('heuristicScalingCheck').addEventListener('change', (e) => {
