@@ -58,8 +58,16 @@ function showToast(message, type = 'success') {
 }
 
 function showScreen(screenId) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(s => s.classList.remove('active'));
+  
+  const targetScreen = document.getElementById(screenId);
+  if (!targetScreen) {
+    console.error(`Screen with id '${screenId}' not found!`);
+    showToast(`Error: Screen '${screenId}' not found`, 'error');
+    return;
+  }
+  targetScreen.classList.add('active');
 }
 
 function formatTime(seconds) {
@@ -79,6 +87,14 @@ async function loadBanks() {
       fetch('./data/bank_verbal.json'),
       fetch('./data/bank_di.json')
     ]);
+    
+    if (!quantRes.ok || !verbalRes.ok || !diRes.ok) {
+      const errors = [];
+      if (!quantRes.ok) errors.push(`Quant: ${quantRes.status}`);
+      if (!verbalRes.ok) errors.push(`Verbal: ${verbalRes.status}`);
+      if (!diRes.ok) errors.push(`DI: ${diRes.status}`);
+      throw new Error(`Failed to fetch question banks: ${errors.join(', ')}`);
+    }
     
     const [quantData, verbalData, diData] = await Promise.all([
       quantRes.json(),
@@ -107,6 +123,7 @@ async function loadBanks() {
   } catch (err) {
     console.error('Failed to load banks:', err);
     showToast('Failed to load question banks: ' + err.message, 'error');
+    throw err; // Re-throw to handle in startSession
   }
 }
 
@@ -318,9 +335,16 @@ async function startSession() {
     
     // Lazy-load banks if not ready
     if (available === 0) {
-      showToast('Loading question banks…', 'warning');
-      await loadBanks();
-      available = APP_STATE.questionBanks[section]?.length || 0;
+      showToast('Loading question banks…', 'info');
+      
+      try {
+        await loadBanks();
+        available = APP_STATE.questionBanks[section]?.length || 0;
+      } catch (loadError) {
+        console.error('Failed to load banks in startSession:', loadError);
+        showToast('Failed to load question banks. Please check your connection and try again.', 'error');
+        return;
+      }
     }
     
     if (available < sectionSize) {
@@ -413,10 +437,19 @@ function renderQuestion() {
   const idx = APP_STATE.currentQuestionIndex;
   const question = APP_STATE.sectionQuestions[idx];
   
-  if (!question) return;
+  if (!question) {
+    console.error('No question found at index:', idx);
+    showToast('Error: Question not found', 'error');
+    return;
+  }
   
   // Update question number
-  document.getElementById('questionNumber').textContent = 
+  const questionNumberEl = document.getElementById('questionNumber');
+  if (!questionNumberEl) {
+    console.error('Question number element not found');
+    return;
+  }
+  questionNumberEl.textContent = 
     `Question ${idx + 1} of ${APP_STATE.sectionQuestions.length}`;
   
   // Update flag button
@@ -1148,7 +1181,12 @@ async function init() {
   initCalculator();
   loadHistoryOnSetup();
   
-  await loadBanks();
+  try {
+    await loadBanks();
+  } catch (error) {
+    console.error('Failed to load banks during init:', error);
+    // Continue anyway, banks will be loaded lazily
+  }
   
   // Apply settings to UI
   document.getElementById('heuristicScalingCheck').checked = APP_STATE.settings.scaledScoreEnabled;
