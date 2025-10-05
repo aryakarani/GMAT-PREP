@@ -78,6 +78,40 @@ function formatTime(seconds) {
   return mins + ':' + (secs < 10 ? '0' : '') + secs;
 }
 
+// Mobile-safe localStorage helpers (avoid private mode exceptions)
+function safeLocalStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    // ignore storage write failures
+  }
+}
+
+function safeLocalStorageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    // ignore
+  }
+}
+
+function parseJsonOrDefault(text, defaultValue) {
+  if (!text) return defaultValue;
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
 // ========================================
 // 1) ROBUST BANK LOADER (iOS-safe)
 // ========================================
@@ -144,13 +178,13 @@ async function loadBanks(options) {
     };
     
     // Load used item IDs from localStorage
-    const usedIds = localStorage.getItem('usedItemIds');
+    const usedIds = safeLocalStorageGet('usedItemIds');
     if (usedIds) {
       APP_STATE.usedItemIds = new Set(JSON.parse(usedIds));
     }
     
     // Load settings
-    const savedSettings = localStorage.getItem('settings');
+    const savedSettings = safeLocalStorageGet('settings');
     if (savedSettings) {
       var parsed = JSON.parse(savedSettings);
       for (var key in parsed) {
@@ -241,7 +275,7 @@ function updateBankStats() {
 function resetBankExposure() {
   if (confirm('Reset bank exposure? This will allow all questions to be used again.')) {
     APP_STATE.usedItemIds.clear();
-    localStorage.removeItem('usedItemIds');
+    safeLocalStorageRemove('usedItemIds');
     updateBankStats();
     showToast('Bank exposure reset successfully', 'success');
   }
@@ -406,6 +440,10 @@ async function startFullTest() {
       sessions: {}
     };
     
+    // Keep UI dropdowns aligned with the order and lock section select
+    updateSectionSelectValue(queue[0]);
+    setSectionSelectEnabled(false);
+
     // Start first section
     startNextSectionInQueue();
     
@@ -428,10 +466,12 @@ function startNextSectionInQueue() {
     // Test complete
     showToast('🎉 Full test complete!', 'success');
     window.currentRun = null;
+    setSectionSelectEnabled(true);
     return;
   }
   
   const section = window.currentRun.queue[window.currentRun.index];
+  updateSectionSelectValue(section);
   const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
   
   try {
@@ -641,6 +681,7 @@ function renderQuestion() {
     radio.value = optIdx;
     radio.id = 'option-' + optIdx;
     radio.checked = APP_STATE.responses[idx] === optIdx;
+    radio.addEventListener('change', function() { selectAnswer(optIdx); });
     
     const label = document.createElement('label');
     label.htmlFor = 'option-' + optIdx;
@@ -828,7 +869,7 @@ function submitSection() {
   APP_STATE.sectionQuestions.forEach(function(q) {
     APP_STATE.usedItemIds.add(q.id);
   });
-  localStorage.setItem('usedItemIds', JSON.stringify(Array.from(APP_STATE.usedItemIds)));
+  safeLocalStorageSet('usedItemIds', JSON.stringify(Array.from(APP_STATE.usedItemIds)));
   
   // Update bank stats
   updateBankStats();
@@ -846,9 +887,9 @@ function submitSection() {
     editsUsed: 3 - APP_STATE.editsRemaining
   };
   
-  const history = JSON.parse(localStorage.getItem('results') || '[]');
+  const history = parseJsonOrDefault(safeLocalStorageGet('results'), []);
   history.unshift(result);
-  localStorage.setItem('results', JSON.stringify(history));
+  safeLocalStorageSet('results', JSON.stringify(history));
   
   APP_STATE.currentAttempt = result;
   
@@ -952,7 +993,7 @@ function renderHistory(containerId, history) {
 }
 
 function loadHistoryOnSetup() {
-  const history = JSON.parse(localStorage.getItem('results') || '[]');
+  const history = parseJsonOrDefault(safeLocalStorageGet('results'), []);
   renderHistory('historyContainer', history);
 }
 
@@ -1110,7 +1151,7 @@ function saveScaledMapping() {
     APP_STATE.settings.scaledMapping = mapping.sort(function(a, b) { 
       return a.pct - b.pct; 
     });
-    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+    safeLocalStorageSet('settings', JSON.stringify(APP_STATE.settings));
     
     closeModal('scaledMappingModal');
     showToast('Scaled score mapping saved', 'success');
@@ -1274,12 +1315,12 @@ function initEventListeners() {
   // Settings
   document.getElementById('heuristicScalingCheck').addEventListener('change', function(e) {
     APP_STATE.settings.scaledScoreEnabled = e.target.checked;
-    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+    safeLocalStorageSet('settings', JSON.stringify(APP_STATE.settings));
   });
   
   document.getElementById('exposureControlCheck').addEventListener('change', function(e) {
     APP_STATE.settings.exposureControl = e.target.checked;
-    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+    safeLocalStorageSet('settings', JSON.stringify(APP_STATE.settings));
   });
   
   document.getElementById('editScaledMappingBtn').addEventListener('click', showScaledMappingEditor);
@@ -1307,7 +1348,21 @@ function initEventListeners() {
   document.getElementById('backToSetupBtn').addEventListener('click', function() {
     showScreen('setupScreen');
     loadHistoryOnSetup();
+    setSectionSelectEnabled(true);
   });
+
+  // Keep section dropdown in sync with order selection (informational only)
+  var orderSelect = document.getElementById('orderSelect');
+  if (orderSelect) {
+    orderSelect.addEventListener('change', function(e) {
+      var val = e.target.value;
+      var first;
+      if (val === 'QVD' || val === 'QDV') first = 'Quant';
+      else if (val === 'VQD' || val === 'VDQ') first = 'Verbal';
+      else first = 'Data Insights';
+      updateSectionSelectValue(first);
+    });
+  }
   
   // Modals
   document.getElementById('closeScratchpad').addEventListener('click', function() { closeModal('scratchpadModal'); });
@@ -1361,6 +1416,8 @@ async function init() {
   initEventListeners();
   initCalculator();
   loadHistoryOnSetup();
+  // Section dropdown is informational only; keep disabled
+  setSectionSelectEnabled(false);
   
   // Load banks
   try {
@@ -1379,3 +1436,21 @@ async function init() {
 
 // Start app when DOM is ready
 window.addEventListener('DOMContentLoaded', init);
+
+// Helpers to keep Section dropdown as a function of order
+function updateSectionSelectValue(section) {
+  var el = document.getElementById('sectionSelect');
+  if (!el) return;
+  for (var i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === section) {
+      el.selectedIndex = i;
+      break;
+    }
+  }
+}
+
+function setSectionSelectEnabled(enabled) {
+  var el = document.getElementById('sectionSelect');
+  if (!el) return;
+  el.disabled = !enabled;
+}
