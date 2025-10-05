@@ -23,7 +23,7 @@
         "EACH statement ALONE is sufficient",
         "Statements (1) and (2) TOGETHER are NOT sufficient"
       ],
-      "answer": 2,
+      "answer": 3,
       "explanation": "Solution approach for question 1."
     },
     {
@@ -41,9 +41,9 @@
         "17",
         "22",
         "27",
-        "32"
+        "34"
       ],
-      "answer": 0,
+      "answer": 4,
       "explanation": "Solution approach for question 2."
     },
     {
@@ -103,7 +103,7 @@
         "30",
         "35"
       ],
-      "answer": 0,
+      "answer": 1,
       "explanation": "Solution approach for question 5."
     },
     {
@@ -143,7 +143,7 @@
         "32",
         "37"
       ],
-      "answer": 1,
+      "answer": 4,
       "explanation": "Solution approach for question 7."
     },
     {
@@ -243,7 +243,7 @@
         "37",
         "42"
       ],
-      "answer": 2,
+      "answer": 3,
       "explanation": "Solution approach for question 12."
     },
     {
@@ -343,7 +343,7 @@
         "42",
         "47"
       ],
-      "answer": 1,
+      "answer": 3,
       "explanation": "Solution approach for question 17."
     },
     {
@@ -503,7 +503,7 @@
         "50",
         "55"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Solution approach for question 25."
     },
     {
@@ -643,7 +643,7 @@
         "57",
         "62"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Solution approach for question 32."
     },
     {
@@ -703,7 +703,7 @@
         "60",
         "65"
       ],
-      "answer": 4,
+      "answer": 0,
       "explanation": "Solution approach for question 35."
     },
     {
@@ -803,7 +803,7 @@
         "65",
         "70"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Solution approach for question 40."
     },
     {
@@ -843,7 +843,7 @@
         "67",
         "72"
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "Solution approach for question 42."
     },
     {
@@ -1103,7 +1103,7 @@
         "30",
         "35"
       ],
-      "answer": 4,
+      "answer": 3,
       "explanation": "Solution approach for question 55."
     },
     {
@@ -1143,7 +1143,7 @@
         "32",
         "37"
       ],
-      "answer": 0,
+      "answer": 4,
       "explanation": "Solution approach for question 57."
     },
     {
@@ -1343,7 +1343,7 @@
         "42",
         "47"
       ],
-      "answer": 2,
+      "answer": 4,
       "explanation": "Solution approach for question 67."
     },
     {
@@ -1443,7 +1443,7 @@
         "47",
         "52"
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "Solution approach for question 72."
     },
     {
@@ -1503,7 +1503,7 @@
         "50",
         "55"
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "Solution approach for question 75."
     },
     {
@@ -1703,7 +1703,7 @@
         "60",
         "65"
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "Solution approach for question 85."
     },
     {
@@ -1743,7 +1743,7 @@
         "62",
         "67"
       ],
-      "answer": 4,
+      "answer": 1,
       "explanation": "Solution approach for question 87."
     },
     {
@@ -1943,7 +1943,7 @@
         "72",
         "77"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Solution approach for question 97."
     },
     {
@@ -2003,7 +2003,7 @@
         "25",
         "30"
       ],
-      "answer": 4,
+      "answer": 1,
       "explanation": "Solution approach for question 100."
     },
     {
@@ -2143,7 +2143,7 @@
         "32",
         "37"
       ],
-      "answer": 1,
+      "answer": 4,
       "explanation": "Solution approach for question 107."
     },
     {
@@ -2203,7 +2203,7 @@
         "35",
         "40"
       ],
-      "answer": 0,
+      "answer": 1,
       "explanation": "Solution approach for question 110."
     },
     {
@@ -2443,7 +2443,7 @@
         "47",
         "52"
       ],
-      "answer": 3,
+      "answer": 0,
       "explanation": "Solution approach for question 122."
     },
     {
@@ -2543,7 +2543,7 @@
         "52",
         "57"
       ],
-      "answer": 1,
+      "answer": 3,
       "explanation": "Solution approach for question 127."
     },
     {
@@ -2603,7 +2603,7 @@
         "55",
         "60"
       ],
-      "answer": 1,
+      "answer": 0,
       "explanation": "Solution approach for question 130."
     },
     {
@@ -2703,7 +2703,7 @@
         "60",
         "65"
       ],
-      "answer": 2,
+      "answer": 0,
       "explanation": "Solution approach for question 135."
     },
     {
@@ -2743,7 +2743,7 @@
         "62",
         "67"
       ],
-      "answer": 4,
+      "answer": 0,
       "explanation": "Solution approach for question 137."
     },
     {
@@ -3055,7 +3055,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3115,7 +3115,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3155,7 +3155,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "If x² - 13x + 12 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 12 = 0, what are the possible values of x?",
       "options": [
         "18",
         "23",
@@ -3175,7 +3175,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3235,7 +3235,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3255,7 +3255,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "If x² - 8x + 9 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 9 = 0, what are the possible values of x?",
       "options": [
         "23",
         "28",
@@ -3355,7 +3355,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 13x + 6 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 6 = 0, what are the possible values of x?",
       "options": [
         "28",
         "33",
@@ -3455,7 +3455,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If x² - 8x + 11 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 11 = 0, what are the possible values of x?",
       "options": [
         "33",
         "38",
@@ -3475,7 +3475,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3535,7 +3535,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3595,7 +3595,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3655,7 +3655,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3755,7 +3755,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 13x + 10 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 10 = 0, what are the possible values of x?",
       "options": [
         "48",
         "53",
@@ -3775,7 +3775,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3835,7 +3835,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3855,7 +3855,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If x² - 8x + 7 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 7 = 0, what are the possible values of x?",
       "options": [
         "53",
         "58",
@@ -3895,7 +3895,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -3955,7 +3955,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4055,7 +4055,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "If x² - 8x + 9 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 9 = 0, what are the possible values of x?",
       "options": [
         "13",
         "18",
@@ -4135,7 +4135,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4155,7 +4155,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 13x + 6 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 6 = 0, what are the possible values of x?",
       "options": [
         "18",
         "23",
@@ -4195,7 +4195,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4255,7 +4255,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4355,7 +4355,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "If x² - 13x + 8 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 8 = 0, what are the possible values of x?",
       "options": [
         "28",
         "33",
@@ -4435,7 +4435,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4455,7 +4455,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "If x² - 8x + 13 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 13 = 0, what are the possible values of x?",
       "options": [
         "33",
         "38",
@@ -4555,7 +4555,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4615,7 +4615,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4755,7 +4755,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "If x² - 13x + 12 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 12 = 0, what are the possible values of x?",
       "options": [
         "48",
         "53",
@@ -4855,7 +4855,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 8x + 9 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 9 = 0, what are the possible values of x?",
       "options": [
         "53",
         "58",
@@ -4915,7 +4915,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -4955,7 +4955,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "If x² - 13x + 6 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 6 = 0, what are the possible values of x?",
       "options": [
         "58",
         "63",
@@ -5055,7 +5055,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 8x + 11 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 11 = 0, what are the possible values of x?",
       "options": [
         "13",
         "18",
@@ -5095,7 +5095,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5155,7 +5155,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5255,7 +5255,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "If x² - 8x + 13 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 13 = 0, what are the possible values of x?",
       "options": [
         "23",
         "28",
@@ -5275,7 +5275,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5335,7 +5335,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5455,7 +5455,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "If x² - 8x + 7 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 7 = 0, what are the possible values of x?",
       "options": [
         "33",
         "38",
@@ -5575,7 +5575,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5695,7 +5695,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5755,7 +5755,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5855,7 +5855,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "If x² - 8x + 11 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 11 = 0, what are the possible values of x?",
       "options": [
         "53",
         "58",
@@ -5935,7 +5935,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -5955,7 +5955,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "If x² - 13x + 8 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 8 = 0, what are the possible values of x?",
       "options": [
         "58",
         "63",
@@ -6055,7 +6055,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6155,7 +6155,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "If x² - 13x + 10 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 10 = 0, what are the possible values of x?",
       "options": [
         "18",
         "23",
@@ -6175,7 +6175,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6295,7 +6295,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6355,7 +6355,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 13x + 12 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 12 = 0, what are the possible values of x?",
       "options": [
         "28",
         "33",
@@ -6415,7 +6415,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6455,7 +6455,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If x² - 8x + 9 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 9 = 0, what are the possible values of x?",
       "options": [
         "33",
         "38",
@@ -6535,7 +6535,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6595,7 +6595,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6655,7 +6655,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "If x² - 8x + 11 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 11 = 0, what are the possible values of x?",
       "options": [
         "43",
         "48",
@@ -6755,7 +6755,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "If x² - 13x + 8 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 8 = 0, what are the possible values of x?",
       "options": [
         "48",
         "53",
@@ -6775,7 +6775,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6835,7 +6835,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -6855,7 +6855,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "If x² - 8x + 13 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 13 = 0, what are the possible values of x?",
       "options": [
         "53",
         "58",
@@ -6955,7 +6955,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -7015,7 +7015,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -7055,7 +7055,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "If x² - 8x + 7 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 7 = 0, what are the possible values of x?",
       "options": [
         "13",
         "18",
@@ -7155,7 +7155,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If x² - 13x + 12 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 13x + 12 = 0, what are the possible values of x?",
       "options": [
         "18",
         "23",
@@ -7255,7 +7255,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -7455,7 +7455,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "If x² - 8x + 11 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 11 = 0, what are the possible values of x?",
       "options": [
         "33",
         "38",
@@ -7555,7 +7555,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -7855,7 +7855,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "If x² - 8x + 7 = 0, what are the possible values of x?",
+      "prompt": "If x\u00b2 - 8x + 7 = 0, what are the possible values of x?",
       "options": [
         "53",
         "58",
@@ -7975,7 +7975,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "What is the value of x² + y²?\n\n(1) x + y = 10\n(2) xy = 21",
+      "prompt": "What is the value of x\u00b2 + y\u00b2?\n\n(1) x + y = 10\n(2) xy = 21",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8035,7 +8035,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8055,7 +8055,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8075,7 +8075,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8095,7 +8095,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8115,7 +8115,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8135,7 +8135,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8155,7 +8155,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8175,7 +8175,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8195,7 +8195,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8215,7 +8215,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8235,7 +8235,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8275,7 +8275,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8315,7 +8315,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8335,7 +8335,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8375,7 +8375,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 8, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 8, what is the value of xy?",
       "options": [
         "29",
         "34",
@@ -8395,7 +8395,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8435,7 +8435,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If f(x) = x³ - 4x² + 6x - 2, what is f(4)?",
+      "prompt": "If f(x) = x\u00b3 - 4x\u00b2 + 6x - 2, what is f(4)?",
       "options": [
         "32",
         "37",
@@ -8455,7 +8455,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8475,7 +8475,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 5, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 5, what is the value of xy?",
       "options": [
         "34",
         "39",
@@ -8495,7 +8495,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8515,7 +8515,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8535,7 +8535,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8575,7 +8575,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 6, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 6, what is the value of xy?",
       "options": [
         "39",
         "44",
@@ -8635,7 +8635,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8655,7 +8655,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8675,7 +8675,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8715,7 +8715,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8735,7 +8735,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "If f(x) = x³ - 4x² + 5x - 7, what is f(3)?",
+      "prompt": "If f(x) = x\u00b3 - 4x\u00b2 + 5x - 7, what is f(3)?",
       "options": [
         "47",
         "52",
@@ -8755,7 +8755,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8775,7 +8775,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 8, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 8, what is the value of xy?",
       "options": [
         "49",
         "54",
@@ -8815,7 +8815,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8835,7 +8835,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8855,7 +8855,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8875,7 +8875,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 5, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 5, what is the value of xy?",
       "options": [
         "54",
         "59",
@@ -8935,7 +8935,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -8975,7 +8975,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 6, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 6, what is the value of xy?",
       "options": [
         "59",
         "64",
@@ -9015,7 +9015,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9035,7 +9035,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9055,7 +9055,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9075,7 +9075,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 7, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 7, what is the value of xy?",
       "options": [
         "14",
         "19",
@@ -9095,7 +9095,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9135,7 +9135,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9175,7 +9175,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9195,7 +9195,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9235,7 +9235,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If f(x) = x³ - 4x² + 6x - 2, what is f(4)?",
+      "prompt": "If f(x) = x\u00b3 - 4x\u00b2 + 6x - 2, what is f(4)?",
       "options": [
         "22",
         "27",
@@ -9255,7 +9255,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9275,7 +9275,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 5, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 5, what is the value of xy?",
       "options": [
         "24",
         "29",
@@ -9295,7 +9295,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9335,7 +9335,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9375,7 +9375,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9395,7 +9395,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9435,7 +9435,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If f(x) = x³ - 4x² + 0x - 2, what is f(2)?",
+      "prompt": "If f(x) = x\u00b3 - 4x\u00b2 + 0x - 2, what is f(2)?",
       "options": [
         "32",
         "37",
@@ -9455,7 +9455,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9475,7 +9475,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9495,7 +9495,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9535,7 +9535,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9555,7 +9555,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9575,7 +9575,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9595,7 +9595,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9615,7 +9615,7 @@
         "probability",
         "counting"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9635,7 +9635,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "If f(x) = x³ - 4x² + 2x - 2, what is f(4)?",
+      "prompt": "If f(x) = x\u00b3 - 4x\u00b2 + 2x - 2, what is f(4)?",
       "options": [
         "42",
         "47",
@@ -9675,7 +9675,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9695,7 +9695,7 @@
         "arithmetic",
         "percent"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9715,7 +9715,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9735,7 +9735,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9755,7 +9755,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9775,7 +9775,7 @@
         "statistics",
         "mean"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 6, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 6, what is the value of xy?",
       "options": [
         "49",
         "54",
@@ -9815,7 +9815,7 @@
         "exponents",
         "roots"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9835,7 +9835,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9875,7 +9875,7 @@
         "number_properties",
         "divisibility"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9895,7 +9895,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is x³ > x²?\n\n(1) x > 1\n(2) x² > x",
+      "prompt": "Is x\u00b3 > x\u00b2?\n\n(1) x > 1\n(2) x\u00b2 > x",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9915,7 +9915,7 @@
         "ratio",
         "proportion"
       ],
-      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a² - b² = 32",
+      "prompt": "What is the value of (a + b)/(a - b)?\n\n(1) a/b = 3\n(2) a\u00b2 - b\u00b2 = 32",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9935,7 +9935,7 @@
         "algebra",
         "linear"
       ],
-      "prompt": "Is n! divisible by 100?\n\n(1) n ≥ 10\n(2) n² > 81",
+      "prompt": "Is n! divisible by 100?\n\n(1) n \u2265 10\n(2) n\u00b2 > 81",
       "options": [
         "Statement (1) ALONE is sufficient",
         "Statement (2) ALONE is sufficient",
@@ -9975,7 +9975,7 @@
         "geometry",
         "area"
       ],
-      "prompt": "If log₂(x) + log₂(y) = 8, what is the value of xy?",
+      "prompt": "If log\u2082(x) + log\u2082(y) = 8, what is the value of xy?",
       "options": [
         "59",
         "64",
