@@ -1,7 +1,7 @@
 // ========================================
 // GMAT Focus Practice — Solo Trainer
 // Static Banks with Heuristic Routing
-// Framework-free, offline-capable
+// Framework-free, ES2019-safe for iOS Safari
 // ========================================
 
 'use strict';
@@ -11,11 +11,6 @@
 // ========================================
 
 const APP_STATE = {
-  questionBanks: {
-    Quant: [],
-    Verbal: [],
-    'Data Insights': []
-  },
   currentSection: null,
   sectionQuestions: [],       // Current section's assembled items
   currentQuestionIndex: 0,
@@ -41,30 +36,37 @@ const APP_STATE = {
   }
 };
 
+// Global banks storage (used by all functions)
+window.BANKS = null;
+
+// Full test run state
+window.currentRun = null;
+
 // ========================================
 // UTILITY FUNCTIONS
 // ========================================
 
-function showToast(message, type = 'success') {
+function showToast(message, type) {
+  if (type === void 0) type = 'success';
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
+  toast.className = 'toast ' + type;
   toast.textContent = message;
   container.appendChild(toast);
 
-  setTimeout(() => {
+  setTimeout(function() {
     toast.remove();
   }, 3000);
 }
 
 function showScreen(screenId) {
   const screens = document.querySelectorAll('.screen');
-  screens.forEach(s => s.classList.remove('active'));
+  screens.forEach(function(s) { s.classList.remove('active'); });
   
   const targetScreen = document.getElementById(screenId);
   if (!targetScreen) {
-    console.error(`Screen with id '${screenId}' not found!`);
-    showToast(`Error: Screen '${screenId}' not found`, 'error');
+    console.error('Screen with id "' + screenId + '" not found!');
+    showToast('Error: Screen "' + screenId + '" not found', 'error');
     return;
   }
   targetScreen.classList.add('active');
@@ -73,38 +75,73 @@ function showScreen(screenId) {
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return mins + ':' + (secs < 10 ? '0' : '') + secs;
 }
 
 // ========================================
-// QUESTION BANK MANAGEMENT
+// 1) ROBUST BANK LOADER (iOS-safe)
 // ========================================
 
-async function loadBanks() {
+/**
+ * Load all question banks with iOS-safe fetch
+ * @param {Object} options - { force: boolean }
+ */
+async function loadBanks(options) {
+  if (options === void 0) options = {};
+  const force = options.force || false;
+  
   try {
-    const [quantRes, verbalRes, diRes] = await Promise.all([
-      fetch('./data/bank_quant.json'),
-      fetch('./data/bank_verbal.json'),
-      fetch('./data/bank_di.json')
-    ]);
+    const qs = force ? ('?v=' + Date.now()) : '';
+    const opts = { 
+      cache: 'no-store', 
+      headers: { 'Cache-Control': 'no-cache' } 
+    };
+
+    const files = {
+      Quant: './data/bank_quant.json' + qs,
+      Verbal: './data/bank_verbal.json' + qs,
+      'Data Insights': './data/bank_di.json' + qs
+    };
+
+    const qRes = await fetch(files.Quant, opts);
+    const vRes = await fetch(files.Verbal, opts);
+    const dRes = await fetch(files['Data Insights'], opts);
+
+    // Check all responses
+    const responses = [
+      { name: 'Quant', res: qRes },
+      { name: 'Verbal', res: vRes },
+      { name: 'Data Insights', res: dRes }
+    ];
     
-    if (!quantRes.ok || !verbalRes.ok || !diRes.ok) {
-      const errors = [];
-      if (!quantRes.ok) errors.push(`Quant: ${quantRes.status}`);
-      if (!verbalRes.ok) errors.push(`Verbal: ${verbalRes.status}`);
-      if (!diRes.ok) errors.push(`DI: ${diRes.status}`);
-      throw new Error(`Failed to fetch question banks: ${errors.join(', ')}`);
+    for (var i = 0; i < responses.length; i++) {
+      var r = responses[i];
+      if (!r.res.ok) {
+        throw new Error('Bank HTTP ' + r.res.status + ': ' + r.res.url + ' (' + r.name + ')');
+      }
     }
-    
-    const [quantData, verbalData, diData] = await Promise.all([
-      quantRes.json(),
-      verbalRes.json(),
-      diRes.json()
-    ]);
-    
-    APP_STATE.questionBanks.Quant = quantData.items || [];
-    APP_STATE.questionBanks.Verbal = verbalData.items || [];
-    APP_STATE.questionBanks['Data Insights'] = diData.items || [];
+
+    const qBank = await qRes.json();
+    const vBank = await vRes.json();
+    const dBank = await dRes.json();
+
+    // Validate shape and content
+    if (!qBank || !qBank.items || !Array.isArray(qBank.items) || qBank.items.length === 0) {
+      throw new Error('Quant bank is empty or invalid');
+    }
+    if (!vBank || !vBank.items || !Array.isArray(vBank.items) || vBank.items.length === 0) {
+      throw new Error('Verbal bank is empty or invalid');
+    }
+    if (!dBank || !dBank.items || !Array.isArray(dBank.items) || dBank.items.length === 0) {
+      throw new Error('Data Insights bank is empty or invalid');
+    }
+
+    // Store in window.BANKS
+    window.BANKS = {
+      Quant: qBank.items,
+      Verbal: vBank.items,
+      'Data Insights': dBank.items
+    };
     
     // Load used item IDs from localStorage
     const usedIds = localStorage.getItem('usedItemIds');
@@ -115,15 +152,25 @@ async function loadBanks() {
     // Load settings
     const savedSettings = localStorage.getItem('settings');
     if (savedSettings) {
-      APP_STATE.settings = { ...APP_STATE.settings, ...JSON.parse(savedSettings) };
+      var parsed = JSON.parse(savedSettings);
+      for (var key in parsed) {
+        if (parsed.hasOwnProperty(key)) {
+          APP_STATE.settings[key] = parsed[key];
+        }
+      }
     }
     
     updateBankStats();
-    showToast('Question banks loaded successfully', 'success');
+    showToast('✅ Question banks loaded successfully (' + 
+      window.BANKS.Quant.length + ' Quant, ' + 
+      window.BANKS.Verbal.length + ' Verbal, ' + 
+      window.BANKS['Data Insights'].length + ' DI)', 'success');
+    
+    return window.BANKS;
   } catch (err) {
     console.error('Failed to load banks:', err);
-    showToast('Failed to load question banks: ' + err.message, 'error');
-    throw err; // Re-throw to handle in startSession
+    showToast('❌ Failed to load banks: ' + err.message, 'error');
+    throw err;
   }
 }
 
@@ -131,38 +178,61 @@ async function loadBanks() {
  * Update bank statistics display
  */
 function updateBankStats() {
-  const quantTotal = APP_STATE.questionBanks.Quant.length;
-  const verbalTotal = APP_STATE.questionBanks.Verbal.length;
-  const diTotal = APP_STATE.questionBanks['Data Insights'].length;
+  if (!window.BANKS) {
+    document.getElementById('totalItems').textContent = '0 / 0';
+    document.getElementById('quantCount').textContent = '0 / 0';
+    document.getElementById('verbalCount').textContent = '0 / 0';
+    document.getElementById('diCount').textContent = '0 / 0';
+    document.getElementById('easyCount').textContent = '0 / 0';
+    document.getElementById('mediumCount').textContent = '0 / 0';
+    document.getElementById('hardCount').textContent = '0 / 0';
+    return;
+  }
+  
+  const quantTotal = window.BANKS.Quant.length;
+  const verbalTotal = window.BANKS.Verbal.length;
+  const diTotal = window.BANKS['Data Insights'].length;
   const totalItems = quantTotal + verbalTotal + diTotal;
   
   // Calculate remaining (unused) questions per section
-  const quantRemaining = APP_STATE.questionBanks.Quant.filter(q => !APP_STATE.usedItemIds.has(q.id)).length;
-  const verbalRemaining = APP_STATE.questionBanks.Verbal.filter(q => !APP_STATE.usedItemIds.has(q.id)).length;
-  const diRemaining = APP_STATE.questionBanks['Data Insights'].filter(q => !APP_STATE.usedItemIds.has(q.id)).length;
+  const quantRemaining = window.BANKS.Quant.filter(function(q) { 
+    return !APP_STATE.usedItemIds.has(q.id); 
+  }).length;
+  const verbalRemaining = window.BANKS.Verbal.filter(function(q) { 
+    return !APP_STATE.usedItemIds.has(q.id); 
+  }).length;
+  const diRemaining = window.BANKS['Data Insights'].filter(function(q) { 
+    return !APP_STATE.usedItemIds.has(q.id); 
+  }).length;
   
   // Calculate by difficulty
-  const allQuestions = [
-    ...APP_STATE.questionBanks.Quant,
-    ...APP_STATE.questionBanks.Verbal,
-    ...APP_STATE.questionBanks['Data Insights']
-  ];
+  const allQuestions = [].concat(
+    window.BANKS.Quant,
+    window.BANKS.Verbal,
+    window.BANKS['Data Insights']
+  );
   
-  const easyTotal = allQuestions.filter(q => q.difficulty === 'E').length;
-  const mediumTotal = allQuestions.filter(q => q.difficulty === 'M').length;
-  const hardTotal = allQuestions.filter(q => q.difficulty === 'H').length;
+  const easyTotal = allQuestions.filter(function(q) { return q.difficulty === 'E'; }).length;
+  const mediumTotal = allQuestions.filter(function(q) { return q.difficulty === 'M'; }).length;
+  const hardTotal = allQuestions.filter(function(q) { return q.difficulty === 'H'; }).length;
   
-  const easyRemaining = allQuestions.filter(q => q.difficulty === 'E' && !APP_STATE.usedItemIds.has(q.id)).length;
-  const mediumRemaining = allQuestions.filter(q => q.difficulty === 'M' && !APP_STATE.usedItemIds.has(q.id)).length;
-  const hardRemaining = allQuestions.filter(q => q.difficulty === 'H' && !APP_STATE.usedItemIds.has(q.id)).length;
+  const easyRemaining = allQuestions.filter(function(q) { 
+    return q.difficulty === 'E' && !APP_STATE.usedItemIds.has(q.id); 
+  }).length;
+  const mediumRemaining = allQuestions.filter(function(q) { 
+    return q.difficulty === 'M' && !APP_STATE.usedItemIds.has(q.id); 
+  }).length;
+  const hardRemaining = allQuestions.filter(function(q) { 
+    return q.difficulty === 'H' && !APP_STATE.usedItemIds.has(q.id); 
+  }).length;
   
-  document.getElementById('totalItems').textContent = `${totalItems - APP_STATE.usedItemIds.size} / ${totalItems}`;
-  document.getElementById('quantCount').textContent = `${quantRemaining} / ${quantTotal}`;
-  document.getElementById('verbalCount').textContent = `${verbalRemaining} / ${verbalTotal}`;
-  document.getElementById('diCount').textContent = `${diRemaining} / ${diTotal}`;
-  document.getElementById('easyCount').textContent = `${easyRemaining} / ${easyTotal}`;
-  document.getElementById('mediumCount').textContent = `${mediumRemaining} / ${mediumTotal}`;
-  document.getElementById('hardCount').textContent = `${hardRemaining} / ${hardTotal}`;
+  document.getElementById('totalItems').textContent = (totalItems - APP_STATE.usedItemIds.size) + ' / ' + totalItems;
+  document.getElementById('quantCount').textContent = quantRemaining + ' / ' + quantTotal;
+  document.getElementById('verbalCount').textContent = verbalRemaining + ' / ' + verbalTotal;
+  document.getElementById('diCount').textContent = diRemaining + ' / ' + diTotal;
+  document.getElementById('easyCount').textContent = easyRemaining + ' / ' + easyTotal;
+  document.getElementById('mediumCount').textContent = mediumRemaining + ' / ' + mediumTotal;
+  document.getElementById('hardCount').textContent = hardRemaining + ' / ' + hardTotal;
 }
 
 /**
@@ -178,284 +248,281 @@ function resetBankExposure() {
 }
 
 // ========================================
-// HEURISTIC ADAPTIVE SELECTION
+// 3) SAMPLER - NO DUPLICATES
 // ========================================
 
 /**
- * Calculate rolling accuracy over last N questions
+ * Shuffle array in place (Fisher-Yates)
  */
-function calculateRollingAccuracy(lastN = 5) {
-  const answeredIndices = Object.keys(APP_STATE.responses)
-    .map(idx => parseInt(idx, 10))
-    .sort((a, b) => a - b)
-    .slice(-lastN);
-  
-  if (answeredIndices.length === 0) return 0.5; // Start at medium
-  
-  let correct = 0;
-  answeredIndices.forEach(idx => {
-    const question = APP_STATE.sectionQuestions[idx];
-    if (APP_STATE.responses[idx] === question.answer) {
-      correct++;
-    }
-  });
-  
-  return correct / answeredIndices.length;
+function shuffleInPlace(a) {
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = a[i];
+    a[i] = a[j];
+    a[j] = temp;
+  }
+  return a;
 }
 
 /**
- * Sample questions without replacement with difficulty routing
+ * Sample without replacement
+ */
+function sampleWithoutReplacement(pool, count) {
+  var copied = pool.slice();
+  var shuffled = shuffleInPlace(copied);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+/**
+ * Assert uniqueness of question IDs
+ */
+function assertUnique(items) {
+  var seen = new Set();
+  for (var i = 0; i < items.length; i++) {
+    var id = items[i].id;
+    if (seen.has(id)) {
+      throw new Error('Duplicate questions detected in assembly: ' + id);
+    }
+    seen.add(id);
+  }
+}
+
+/**
+ * Assemble a section with uniqueness guarantees
  * @param {string} section - Section name
- * @param {number} count - Number of questions needed
+ * @param {number} count - Number of questions
  * @returns {Array} Selected questions
  */
-function sampleQuestions(section, count) {
-  let pool = APP_STATE.questionBanks[section];
+function assembleSection(section, count) {
+  if (!window.BANKS) {
+    throw new Error('Banks not loaded');
+  }
   
+  var pool = window.BANKS[section];
   if (!pool || pool.length === 0) {
-    console.error('No questions available for section:', section);
-    showToast(`No questions available for ${section}. Please reload banks.`, 'error');
-    return [];
+    throw new Error('No questions available for section: ' + section);
   }
   
-  // Filter out used items if exposure control is enabled
+  // Apply exposure control if enabled
+  var availablePool = pool;
   if (APP_STATE.settings.exposureControl) {
-    pool = pool.filter(q => !APP_STATE.usedItemIds.has(q.id) && !APP_STATE.sessionUsedIds.has(q.id));
+    availablePool = pool.filter(function(q) {
+      return !APP_STATE.usedItemIds.has(q.id);
+    });
     
-    // If pool exhausted, show warning and use all available
-    if (pool.length < count) {
-      showToast('⚠️ Question bank exhausted, allowing some repeats', 'warning');
-      pool = APP_STATE.questionBanks[section].filter(q => !APP_STATE.sessionUsedIds.has(q.id));
+    if (availablePool.length < count) {
+      showToast('⚠️ Bank exhausted for ' + section + '. Using all remaining unique items.', 'warning');
+      // Use all remaining
+      availablePool = pool.filter(function(q) {
+        return !APP_STATE.usedItemIds.has(q.id);
+      });
+      if (availablePool.length === 0) {
+        // Last resort: use all
+        availablePool = pool;
+      }
     }
   }
   
-  // Separate by difficulty
-  const easyPool = pool.filter(q => q.difficulty === 'E');
-  const mediumPool = pool.filter(q => q.difficulty === 'M');
-  const hardPool = pool.filter(q => q.difficulty === 'H');
+  // Build weighted pool by difficulty (30% E, 50% M, 20% H)
+  var easyPool = availablePool.filter(function(q) { return q.difficulty === 'E'; });
+  var mediumPool = availablePool.filter(function(q) { return q.difficulty === 'M'; });
+  var hardPool = availablePool.filter(function(q) { return q.difficulty === 'H'; });
   
-  // Calculate target counts (30% E, 50% M, 20% H)
-  const easyTarget = Math.round(count * 0.30);
-  const mediumTarget = Math.round(count * 0.50);
-  const hardTarget = count - easyTarget - mediumTarget;
+  var easyTarget = Math.round(count * 0.30);
+  var mediumTarget = Math.round(count * 0.50);
+  var hardTarget = count - easyTarget - mediumTarget;
   
-  // Sample from each difficulty bucket
-  const selected = [];
-  selected.push(...randomSample(easyPool, Math.min(easyTarget, easyPool.length)));
-  selected.push(...randomSample(mediumPool, Math.min(mediumTarget, mediumPool.length)));
-  selected.push(...randomSample(hardPool, Math.min(hardTarget, hardPool.length)));
+  var selected = [];
+  var selectedIds = new Set();
   
-  // If we didn't get enough, backfill from any available
+  // Sample from each bucket, ensuring no duplicates
+  function addUnique(sourcePool, target) {
+    var sampled = sampleWithoutReplacement(sourcePool, target);
+    for (var i = 0; i < sampled.length; i++) {
+      var item = sampled[i];
+      if (!selectedIds.has(item.id)) {
+        selected.push(item);
+        selectedIds.add(item.id);
+      }
+    }
+  }
+  
+  addUnique(easyPool, easyTarget);
+  addUnique(mediumPool, mediumTarget);
+  addUnique(hardPool, hardTarget);
+  
+  // Backfill if needed
   if (selected.length < count) {
-    const remaining = pool.filter(q => !selected.includes(q));
-    selected.push(...randomSample(remaining, count - selected.length));
+    var remaining = availablePool.filter(function(q) {
+      return !selectedIds.has(q.id);
+    });
+    addUnique(remaining, count - selected.length);
   }
   
-  // Shuffle to mix difficulties
-  return shuffle(selected).slice(0, count);
+  // Final shuffle
+  shuffleInPlace(selected);
+  
+  // Assert uniqueness
+  assertUnique(selected);
+  
+  return selected.slice(0, count);
 }
 
+// ========================================
+// 2) SECTION ORDER & FULL TEST
+// ========================================
+
 /**
- * Random sample without replacement
+ * Start a full test with section order
  */
-function randomSample(array, n) {
-  const result = [];
-  const used = new Set();
-  const max = Math.min(n, array.length);
-  
-  while (result.length < max) {
-    const idx = Math.floor(Math.random() * array.length);
-    if (!used.has(idx)) {
-      used.add(idx);
-      result.push(array[idx]);
+async function startFullTest() {
+  try {
+    // Ensure banks are loaded
+    if (!window.BANKS) {
+      showToast('Loading question banks...', 'info');
+      await loadBanks();
     }
+    
+    // Read section order from dropdown
+    const orderValue = document.getElementById('orderSelect').value;
+    const orderMap = {
+      'QVD': ['Quant', 'Verbal', 'Data Insights'],
+      'QDV': ['Quant', 'Data Insights', 'Verbal'],
+      'VQD': ['Verbal', 'Quant', 'Data Insights'],
+      'VDQ': ['Verbal', 'Data Insights', 'Quant'],
+      'DQV': ['Data Insights', 'Quant', 'Verbal'],
+      'DVQ': ['Data Insights', 'Verbal', 'Quant']
+    };
+    
+    const queue = orderMap[orderValue];
+    if (!queue) {
+      throw new Error('Invalid section order: ' + orderValue);
+    }
+    
+    // Initialize full test run
+    window.currentRun = {
+      queue: queue,
+      index: 0,
+      sessions: {}
+    };
+    
+    // Start first section
+    startNextSectionInQueue();
+    
+  } catch (err) {
+    console.error('Failed to start full test:', err);
+    showToast('❌ Failed to start full test: ' + err.message, 'error');
   }
-  
-  return result;
 }
 
 /**
- * Shuffle array (Fisher-Yates)
+ * Start next section in queue
  */
-function shuffle(array) {
-  const result = [...array];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+function startNextSectionInQueue() {
+  if (!window.currentRun) {
+    console.error('No active run');
+    return;
   }
-  return result;
+  
+  if (window.currentRun.index >= window.currentRun.queue.length) {
+    // Test complete
+    showToast('🎉 Full test complete!', 'success');
+    window.currentRun = null;
+    return;
+  }
+  
+  const section = window.currentRun.queue[window.currentRun.index];
+  const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
+  
+  try {
+    startSingleSection(section, timerMinutes);
+  } catch (err) {
+    showToast('❌ Error starting ' + section + ': ' + err.message, 'error');
+  }
 }
 
 /**
- * Get next question with heuristic difficulty routing
+ * Start a single section
+ * @param {string} section - Section name
+ * @param {number} timerMinutes - Timer duration in minutes
  */
-function getNextQuestion() {
-  const rollingAcc = calculateRollingAccuracy(5);
-  const pool = APP_STATE.questionBanks[APP_STATE.currentSection].filter(
-    q => !APP_STATE.sessionUsedIds.has(q.id) && 
-         (APP_STATE.settings.exposureControl ? !APP_STATE.usedItemIds.has(q.id) : true)
-  );
+function startSingleSection(section, timerMinutes) {
+  if (timerMinutes === void 0) timerMinutes = 45;
   
-  if (pool.length === 0) {
-    showToast('⚠️ Question bank exhausted, reset exposure', 'warning');
-    return null;
+  if (!window.BANKS) {
+    throw new Error('Banks not loaded. Please reload banks first.');
   }
   
-  // Determine difficulty preference based on rolling accuracy
-  let targetDifficulty;
-  if (rollingAcc >= 0.80) {
-    targetDifficulty = 'H'; // High accuracy -> harder questions
-  } else if (rollingAcc <= 0.50) {
-    targetDifficulty = 'E'; // Low accuracy -> easier questions
-  } else {
-    targetDifficulty = 'M'; // Medium accuracy -> medium questions
+  const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
+  
+  // Assemble section
+  const items = assembleSection(section, sectionSize);
+  
+  if (items.length === 0) {
+    throw new Error('Failed to assemble questions for ' + section);
   }
   
-  // Filter by preferred difficulty, with fallback
-  let candidates = pool.filter(q => q.difficulty === targetDifficulty);
-  if (candidates.length === 0) {
-    candidates = pool; // Fallback to any available
+  // Reset state
+  APP_STATE.currentSection = section;
+  APP_STATE.sectionQuestions = items;
+  APP_STATE.currentQuestionIndex = 0;
+  APP_STATE.responses = {};
+  APP_STATE.flags = new Set();
+  APP_STATE.editsRemaining = 3;
+  APP_STATE.editHistory = {};
+  APP_STATE.timerSeconds = timerMinutes * 60;
+  APP_STATE.sessionUsedIds = new Set();
+  
+  // Mark as used in session
+  items.forEach(function(q) {
+    APP_STATE.sessionUsedIds.add(q.id);
+  });
+  
+  // Show/hide calculator based on section
+  const calcBtn = document.getElementById('calculatorBtn');
+  if (calcBtn) {
+    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
   }
   
-  // Random selection within difficulty bucket
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  // Start timer
+  startTimer();
+  
+  // Show question screen
+  showScreen('questionScreen');
+  renderQuestion();
+  updateTopBar();
+  
+  showToast('✅ ' + section + ' started (' + items.length + ' questions)', 'success');
+}
+
+/**
+ * Start single section (from individual buttons)
+ */
+async function startSingle(section) {
+  try {
+    if (!window.BANKS) {
+      showToast('Loading question banks...', 'info');
+      await loadBanks();
+    }
+    
+    const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
+    startSingleSection(section, timerMinutes);
+  } catch (err) {
+    console.error('Failed to start single section:', err);
+    showToast('❌ Failed to start ' + section + ': ' + err.message, 'error');
+  }
 }
 
 // ========================================
 // SESSION MANAGEMENT
 // ========================================
 
-// Simple non-repeating sampler
-function sampleWithoutReplacement(pool, count) {
-  const shuffled = pool.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, pool.length));
-}
-
-// Universal start practice function with static logic
-async function startPractice(section) {
-  try {
-    // Determine which bank file to load
-    const fileMap = {
-      Quant: "./data/bank_quant.json",
-      Verbal: "./data/bank_verbal.json",
-      "Data Insights": "./data/bank_di.json"
-    };
-    const res = await fetch(fileMap[section]);
-    if (!res.ok) throw new Error("Bank not found");
-    const bank = await res.json();
-
-    // Filter to this section and shuffle
-    const sectionItems = bank.items.filter(q => q.section === section);
-    if (!sectionItems.length) throw new Error("No questions loaded");
-
-    // Random weighted sampling by difficulty
-    const sampleCount = section === "Quant" ? 21 : section === "Verbal" ? 23 : 20;
-    const picked = sampleWithoutReplacement(sectionItems, sampleCount);
-
-    // Build current session
-    APP_STATE.currentSection = section;
-    APP_STATE.sectionQuestions = picked;
-    APP_STATE.currentQuestionIndex = 0;
-    APP_STATE.responses = {};
-    APP_STATE.flags = new Set();
-    APP_STATE.editsRemaining = 3;
-    APP_STATE.editHistory = {};
-    APP_STATE.timerSeconds = 45 * 60; // Default 45 minutes
-    APP_STATE.sessionUsedIds = new Set();
-
-    // Mark questions as used in session
-    picked.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
-
-    // Show/hide calculator based on section
-    const calcBtn = document.getElementById('calculatorBtn');
-    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
-
-    // Start timer
-    startTimer();
-
-    // Show question screen
-    showScreen('questionScreen');
-    renderQuestion();
-    updateTopBar();
-    
-    showToast(`✅ ${section} test started with ${picked.length} unique questions`);
-  } catch (err) {
-    console.error("Start practice failed:", err);
-    showToast(`⚠️ ${err.message}`);
-  }
-}
-
-async function startSession() {
-  try {
-    const section = document.getElementById('sectionSelect').value;
-    const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
-    
-    const sectionSize = section === 'Quant' ? 21 : (section === 'Verbal' ? 23 : 20);
-    let available = APP_STATE.questionBanks[section]?.length || 0;
-    
-    // Lazy-load banks if not ready
-    if (available === 0) {
-      showToast('Loading question banks…', 'info');
-      
-      try {
-        await loadBanks();
-        available = APP_STATE.questionBanks[section]?.length || 0;
-      } catch (loadError) {
-        console.error('Failed to load banks in startSession:', loadError);
-        showToast('Failed to load question banks. Please check your connection and try again.', 'error');
-        return;
-      }
-    }
-    
-    if (available < sectionSize) {
-      showToast(`Not enough ${section} questions (need ${sectionSize}, have ${available})`, 'error');
-      return;
-    }
-    
-    // Reset state
-    APP_STATE.currentSection = section;
-    APP_STATE.currentQuestionIndex = 0;
-    APP_STATE.responses = {};
-    APP_STATE.flags = new Set();
-    APP_STATE.editsRemaining = 3;
-    APP_STATE.editHistory = {};
-    APP_STATE.timerSeconds = timerMinutes * 60;
-    APP_STATE.sessionUsedIds = new Set();
-    
-    // Sample questions for this session
-    APP_STATE.sectionQuestions = sampleQuestions(section, sectionSize);
-    
-    if (APP_STATE.sectionQuestions.length === 0) {
-      showToast('Failed to load questions. Please try reloading the banks.', 'error');
-      return;
-    }
-    
-    // Mark as used in session
-    APP_STATE.sectionQuestions.forEach(q => APP_STATE.sessionUsedIds.add(q.id));
-    
-    // Show/hide calculator based on section
-    const calcBtn = document.getElementById('calculatorBtn');
-    calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
-    
-    // Start timer
-    startTimer();
-    
-    // Show question screen
-    showScreen('questionScreen');
-    renderQuestion();
-    updateTopBar();
-  } catch (error) {
-    console.error('Error starting session:', error);
-    showToast('Failed to start practice session: ' + error.message, 'error');
-  }
-}
-
 function startTimer() {
   if (APP_STATE.timerInterval) {
     clearInterval(APP_STATE.timerInterval);
   }
   
-  APP_STATE.timerInterval = setInterval(() => {
+  APP_STATE.timerInterval = setInterval(function() {
     APP_STATE.timerSeconds--;
     updateTimerDisplay();
     
@@ -510,7 +577,7 @@ function renderQuestion() {
     return;
   }
   questionNumberEl.textContent = 
-    `Question ${idx + 1} of ${APP_STATE.sectionQuestions.length}`;
+    'Question ' + (idx + 1) + ' of ' + APP_STATE.sectionQuestions.length;
   
   // Update flag button
   const flagBtn = document.getElementById('flagBtn');
@@ -531,7 +598,7 @@ function renderQuestion() {
     
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    question.table.headers.forEach(h => {
+    question.table.headers.forEach(function(h) {
       const th = document.createElement('th');
       th.textContent = h;
       headerRow.appendChild(th);
@@ -540,9 +607,9 @@ function renderQuestion() {
     table.appendChild(thead);
     
     const tbody = document.createElement('tbody');
-    question.table.rows.forEach(row => {
+    question.table.rows.forEach(function(row) {
       const tr = document.createElement('tr');
-      row.forEach(cell => {
+      row.forEach(function(cell) {
         const td = document.createElement('td');
         td.textContent = cell;
         tr.appendChild(td);
@@ -561,7 +628,7 @@ function renderQuestion() {
   const optionsContainer = document.getElementById('optionsContainer');
   optionsContainer.innerHTML = '';
   
-  question.options.forEach((option, optIdx) => {
+  question.options.forEach(function(option, optIdx) {
     const div = document.createElement('div');
     div.className = 'option-item';
     if (APP_STATE.responses[idx] === optIdx) {
@@ -572,17 +639,17 @@ function renderQuestion() {
     radio.type = 'radio';
     radio.name = 'answer';
     radio.value = optIdx;
-    radio.id = `option-${optIdx}`;
+    radio.id = 'option-' + optIdx;
     radio.checked = APP_STATE.responses[idx] === optIdx;
     
     const label = document.createElement('label');
-    label.htmlFor = `option-${optIdx}`;
+    label.htmlFor = 'option-' + optIdx;
     label.textContent = option;
     
     div.appendChild(radio);
     div.appendChild(label);
     
-    div.addEventListener('click', () => selectAnswer(optIdx));
+    div.addEventListener('click', function() { selectAnswer(optIdx); });
     
     optionsContainer.appendChild(div);
   });
@@ -616,14 +683,14 @@ function selectAnswer(optIdx) {
 
 function updateTopBar() {
   document.getElementById('sectionLabel').textContent = APP_STATE.currentSection;
-  document.getElementById('editsLeft').textContent = `Edits: ${APP_STATE.editsRemaining}`;
+  document.getElementById('editsLeft').textContent = 'Edits: ' + APP_STATE.editsRemaining;
   
   // Update difficulty label based on current question
   const idx = APP_STATE.currentQuestionIndex;
   if (idx < APP_STATE.sectionQuestions.length) {
     const question = APP_STATE.sectionQuestions[idx];
     
-    let diffLabel, diffClass;
+    var diffLabel, diffClass;
     if (question.difficulty === 'E') {
       diffLabel = 'Easy';
       diffClass = 'E';
@@ -637,7 +704,7 @@ function updateTopBar() {
     
     const diffElement = document.getElementById('difficultyLabel');
     diffElement.textContent = diffLabel;
-    diffElement.className = `difficulty-label ${diffClass}`;
+    diffElement.className = 'difficulty-label ' + diffClass;
   }
 }
 
@@ -678,7 +745,7 @@ function renderReviewGrid() {
   const grid = document.getElementById('reviewGrid');
   grid.innerHTML = '';
   
-  APP_STATE.sectionQuestions.forEach((q, idx) => {
+  APP_STATE.sectionQuestions.forEach(function(q, idx) {
     const item = document.createElement('div');
     item.className = 'review-item';
     
@@ -701,7 +768,7 @@ function renderReviewGrid() {
     item.appendChild(number);
     item.appendChild(status);
     
-    item.addEventListener('click', () => {
+    item.addEventListener('click', function() {
       APP_STATE.currentQuestionIndex = idx;
       showScreen('questionScreen');
       renderQuestion();
@@ -717,7 +784,9 @@ function renderReviewGrid() {
 // ========================================
 
 function calculateScaledScore(percentage) {
-  const mapping = APP_STATE.settings.scaledMapping.sort((a, b) => a.pct - b.pct);
+  const mapping = APP_STATE.settings.scaledMapping.slice().sort(function(a, b) { 
+    return a.pct - b.pct; 
+  });
   
   if (percentage <= mapping[0].pct) {
     return mapping[0].score;
@@ -727,7 +796,7 @@ function calculateScaledScore(percentage) {
     return mapping[mapping.length - 1].score;
   }
   
-  for (let i = 0; i < mapping.length - 1; i++) {
+  for (var i = 0; i < mapping.length - 1; i++) {
     const p1 = mapping[i];
     const p2 = mapping[i + 1];
     
@@ -743,10 +812,10 @@ function calculateScaledScore(percentage) {
 function submitSection() {
   clearInterval(APP_STATE.timerInterval);
   
-  let correct = 0;
-  let total = APP_STATE.sectionQuestions.length;
+  var correct = 0;
+  var total = APP_STATE.sectionQuestions.length;
   
-  APP_STATE.sectionQuestions.forEach((q, idx) => {
+  APP_STATE.sectionQuestions.forEach(function(q, idx) {
     if (APP_STATE.responses[idx] === q.answer) {
       correct++;
     }
@@ -756,10 +825,10 @@ function submitSection() {
   const scaledScore = calculateScaledScore(percentage);
   
   // Mark questions as used
-  APP_STATE.sectionQuestions.forEach(q => {
+  APP_STATE.sectionQuestions.forEach(function(q) {
     APP_STATE.usedItemIds.add(q.id);
   });
-  localStorage.setItem('usedItemIds', JSON.stringify([...APP_STATE.usedItemIds]));
+  localStorage.setItem('usedItemIds', JSON.stringify(Array.from(APP_STATE.usedItemIds)));
   
   // Update bank stats
   updateBankStats();
@@ -767,12 +836,12 @@ function submitSection() {
   // Save to history
   const result = {
     section: APP_STATE.currentSection,
-    correct,
-    total,
-    percentage,
+    correct: correct,
+    total: total,
+    percentage: percentage,
     scaledScore: APP_STATE.settings.scaledScoreEnabled ? scaledScore : null,
     timestamp: new Date().toISOString(),
-    itemIds: APP_STATE.sectionQuestions.map(q => q.id),
+    itemIds: APP_STATE.sectionQuestions.map(function(q) { return q.id; }),
     responses: APP_STATE.responses,
     editsUsed: 3 - APP_STATE.editsRemaining
   };
@@ -783,7 +852,26 @@ function submitSection() {
   
   APP_STATE.currentAttempt = result;
   
-  showResultsScreen(result, history);
+  // Check if this is part of a full test
+  if (window.currentRun) {
+    window.currentRun.sessions[APP_STATE.currentSection] = result;
+    window.currentRun.index++;
+    
+    // Show brief results then continue
+    showResultsScreen(result, history);
+    
+    // Auto-advance after 3 seconds
+    setTimeout(function() {
+      if (window.currentRun && window.currentRun.index < window.currentRun.queue.length) {
+        startNextSectionInQueue();
+      } else {
+        showToast('🎉 Full test complete!', 'success');
+        window.currentRun = null;
+      }
+    }, 3000);
+  } else {
+    showResultsScreen(result, history);
+  }
 }
 
 function showResultsScreen(result, history) {
@@ -791,34 +879,30 @@ function showResultsScreen(result, history) {
   
   const resultsContent = document.getElementById('resultsContent');
   
-  let html = `
-    <div class="result-stat">
-      <span class="result-stat-label">Section</span>
-      <span class="result-stat-value">${result.section}</span>
-    </div>
-    <div class="result-stat">
-      <span class="result-stat-label">Score</span>
-      <span class="result-stat-value">${result.correct} / ${result.total}</span>
-    </div>
-    <div class="result-stat">
-      <span class="result-stat-label">Percentage</span>
-      <span class="result-stat-value">${result.percentage}%</span>
-    </div>`;
+  var html = '<div class="result-stat">' +
+    '<span class="result-stat-label">Section</span>' +
+    '<span class="result-stat-value">' + result.section + '</span>' +
+    '</div>' +
+    '<div class="result-stat">' +
+    '<span class="result-stat-label">Score</span>' +
+    '<span class="result-stat-value">' + result.correct + ' / ' + result.total + '</span>' +
+    '</div>' +
+    '<div class="result-stat">' +
+    '<span class="result-stat-label">Percentage</span>' +
+    '<span class="result-stat-value">' + result.percentage + '%</span>' +
+    '</div>';
   
   if (result.scaledScore !== null) {
-    html += `
-    <div class="result-stat">
-      <span class="result-stat-label">Heuristic Scaled Score</span>
-      <span class="result-stat-value">${result.scaledScore}</span>
-    </div>`;
+    html += '<div class="result-stat">' +
+      '<span class="result-stat-label">Heuristic Scaled Score</span>' +
+      '<span class="result-stat-value">' + result.scaledScore + '</span>' +
+      '</div>';
   }
   
-  html += `
-    <div class="result-stat">
-      <span class="result-stat-label">Edits Used</span>
-      <span class="result-stat-value">${result.editsUsed} / 3</span>
-    </div>
-  `;
+  html += '<div class="result-stat">' +
+    '<span class="result-stat-label">Edits Used</span>' +
+    '<span class="result-stat-value">' + result.editsUsed + ' / 3</span>' +
+    '</div>';
   
   resultsContent.innerHTML = html;
   
@@ -836,33 +920,29 @@ function renderHistory(containerId, history) {
   const table = document.createElement('table');
   table.className = 'history-table';
   
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Section</th>
-        <th>Score</th>
-        <th>%</th>
-        <th>Scaled</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  `;
+  table.innerHTML = '<thead>' +
+    '<tr>' +
+    '<th>Date</th>' +
+    '<th>Section</th>' +
+    '<th>Score</th>' +
+    '<th>%</th>' +
+    '<th>Scaled</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    '</tbody>';
   
   const tbody = table.querySelector('tbody');
   
-  history.forEach(h => {
+  history.forEach(function(h) {
     const tr = document.createElement('tr');
     const date = new Date(h.timestamp).toLocaleString();
     
-    tr.innerHTML = `
-      <td>${date}</td>
-      <td>${h.section}</td>
-      <td>${h.correct}/${h.total}</td>
-      <td>${h.percentage}%</td>
-      <td>${h.scaledScore !== null ? h.scaledScore : '—'}</td>
-    `;
+    tr.innerHTML = '<td>' + date + '</td>' +
+      '<td>' + h.section + '</td>' +
+      '<td>' + h.correct + '/' + h.total + '</td>' +
+      '<td>' + h.percentage + '%</td>' +
+      '<td>' + (h.scaledScore !== null ? h.scaledScore : '—') + '</td>';
     
     tbody.appendChild(tr);
   });
@@ -883,7 +963,7 @@ function exportAttempt() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `gmat-attempt-${Date.now()}.json`;
+  a.download = 'gmat-attempt-' + Date.now() + '.json';
   a.click();
   URL.revokeObjectURL(url);
   
@@ -895,87 +975,97 @@ function exportAttempt() {
 // ========================================
 
 function showBankStats() {
+  if (!window.BANKS) {
+    showToast('Banks not loaded yet', 'warning');
+    return;
+  }
+  
   const modal = document.getElementById('bankStatsModal');
   const content = document.getElementById('bankStatsContent');
   
-  const allQuestions = [
-    ...APP_STATE.questionBanks.Quant,
-    ...APP_STATE.questionBanks.Verbal,
-    ...APP_STATE.questionBanks['Data Insights']
-  ];
+  const allQuestions = [].concat(
+    window.BANKS.Quant,
+    window.BANKS.Verbal,
+    window.BANKS['Data Insights']
+  );
   
   const totalItems = allQuestions.length;
-  const usedItems = allQuestions.filter(q => APP_STATE.usedItemIds.has(q.id)).length;
+  const usedItems = allQuestions.filter(function(q) { 
+    return APP_STATE.usedItemIds.has(q.id); 
+  }).length;
   const remainingItems = totalItems - usedItems;
   
   // Per section stats
   const sections = ['Quant', 'Verbal', 'Data Insights'];
-  const sectionStats = sections.map(sec => {
-    const items = APP_STATE.questionBanks[sec];
-    const used = items.filter(q => APP_STATE.usedItemIds.has(q.id)).length;
+  const sectionStats = sections.map(function(sec) {
+    const items = window.BANKS[sec];
+    const used = items.filter(function(q) { 
+      return APP_STATE.usedItemIds.has(q.id); 
+    }).length;
     const remaining = items.length - used;
     
     // By difficulty
-    const easyTotal = items.filter(q => q.difficulty === 'E').length;
-    const mediumTotal = items.filter(q => q.difficulty === 'M').length;
-    const hardTotal = items.filter(q => q.difficulty === 'H').length;
+    const easyTotal = items.filter(function(q) { return q.difficulty === 'E'; }).length;
+    const mediumTotal = items.filter(function(q) { return q.difficulty === 'M'; }).length;
+    const hardTotal = items.filter(function(q) { return q.difficulty === 'H'; }).length;
     
-    const easyRemaining = items.filter(q => q.difficulty === 'E' && !APP_STATE.usedItemIds.has(q.id)).length;
-    const mediumRemaining = items.filter(q => q.difficulty === 'M' && !APP_STATE.usedItemIds.has(q.id)).length;
-    const hardRemaining = items.filter(q => q.difficulty === 'H' && !APP_STATE.usedItemIds.has(q.id)).length;
+    const easyRemaining = items.filter(function(q) { 
+      return q.difficulty === 'E' && !APP_STATE.usedItemIds.has(q.id); 
+    }).length;
+    const mediumRemaining = items.filter(function(q) { 
+      return q.difficulty === 'M' && !APP_STATE.usedItemIds.has(q.id); 
+    }).length;
+    const hardRemaining = items.filter(function(q) { 
+      return q.difficulty === 'H' && !APP_STATE.usedItemIds.has(q.id); 
+    }).length;
     
     return {
       section: sec,
       total: items.length,
-      used,
-      remaining,
-      easyTotal,
-      mediumTotal,
-      hardTotal,
-      easyRemaining,
-      mediumRemaining,
-      hardRemaining
+      used: used,
+      remaining: remaining,
+      easyTotal: easyTotal,
+      mediumTotal: mediumTotal,
+      hardTotal: hardTotal,
+      easyRemaining: easyRemaining,
+      mediumRemaining: mediumRemaining,
+      hardRemaining: hardRemaining
     };
   });
   
-  let html = `
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h4>Total Items</h4>
-        <div class="stat-value">${totalItems}</div>
-        <div class="stat-detail">${remainingItems} remaining</div>
-      </div>
-      <div class="stat-card">
-        <h4>Used Items</h4>
-        <div class="stat-value">${usedItems}</div>
-        <div class="stat-detail">${Math.round((usedItems / totalItems) * 100)}% of bank</div>
-      </div>
-    </div>
-    
-    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Section Breakdown</h3>
-  `;
+  var html = '<div class="stats-grid">' +
+    '<div class="stat-card">' +
+    '<h4>Total Items</h4>' +
+    '<div class="stat-value">' + totalItems + '</div>' +
+    '<div class="stat-detail">' + remainingItems + ' remaining</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<h4>Used Items</h4>' +
+    '<div class="stat-value">' + usedItems + '</div>' +
+    '<div class="stat-detail">' + Math.round((usedItems / totalItems) * 100) + '% of bank</div>' +
+    '</div>' +
+    '</div>' +
+    '<h3 style="margin-top: 2rem; margin-bottom: 1rem;">Section Breakdown</h3>';
   
-  sectionStats.forEach(s => {
-    html += `
-      <div class="section-stats-card">
-        <h4>${s.section}</h4>
-        <p><strong>Total:</strong> ${s.total} questions (${s.remaining} remaining)</p>
-        <div class="difficulty-grid">
-          <div class="difficulty-stat">
-            <span class="difficulty-label E">Easy</span>
-            <span>${s.easyRemaining} / ${s.easyTotal}</span>
-          </div>
-          <div class="difficulty-stat">
-            <span class="difficulty-label M">Medium</span>
-            <span>${s.mediumRemaining} / ${s.mediumTotal}</span>
-          </div>
-          <div class="difficulty-stat">
-            <span class="difficulty-label H">Hard</span>
-            <span>${s.hardRemaining} / ${s.hardTotal}</span>
-          </div>
-        </div>
-      </div>
-    `;
+  sectionStats.forEach(function(s) {
+    html += '<div class="section-stats-card">' +
+      '<h4>' + s.section + '</h4>' +
+      '<p><strong>Total:</strong> ' + s.total + ' questions (' + s.remaining + ' remaining)</p>' +
+      '<div class="difficulty-grid">' +
+      '<div class="difficulty-stat">' +
+      '<span class="difficulty-label E">Easy</span>' +
+      '<span>' + s.easyRemaining + ' / ' + s.easyTotal + '</span>' +
+      '</div>' +
+      '<div class="difficulty-stat">' +
+      '<span class="difficulty-label M">Medium</span>' +
+      '<span>' + s.mediumRemaining + ' / ' + s.mediumTotal + '</span>' +
+      '</div>' +
+      '<div class="difficulty-stat">' +
+      '<span class="difficulty-label H">Hard</span>' +
+      '<span>' + s.hardRemaining + ' / ' + s.hardTotal + '</span>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
   });
   
   content.innerHTML = html;
@@ -990,7 +1080,9 @@ function showScaledMappingEditor() {
   const textarea = document.getElementById('scaledMappingText');
   const mapping = APP_STATE.settings.scaledMapping;
   
-  const text = mapping.map(m => `${m.pct}:${m.score}`).join('\n');
+  const text = mapping.map(function(m) { 
+    return m.pct + ':' + m.score; 
+  }).join('\n');
   textarea.value = text;
   
   openModal('scaledMappingModal');
@@ -1001,19 +1093,23 @@ function saveScaledMapping() {
   const lines = textarea.value.trim().split('\n');
   
   try {
-    const mapping = lines.map(line => {
-      const [pct, score] = line.split(':').map(s => parseFloat(s.trim()));
+    const mapping = lines.map(function(line) {
+      const parts = line.split(':');
+      const pct = parseFloat(parts[0].trim());
+      const score = parseFloat(parts[1].trim());
       if (isNaN(pct) || isNaN(score)) {
         throw new Error('Invalid format');
       }
-      return { pct, score };
+      return { pct: pct, score: score };
     });
     
     if (mapping.length < 2) {
       throw new Error('Need at least 2 points');
     }
     
-    APP_STATE.settings.scaledMapping = mapping.sort((a, b) => a.pct - b.pct);
+    APP_STATE.settings.scaledMapping = mapping.sort(function(a, b) { 
+      return a.pct - b.pct; 
+    });
     localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
     
     closeModal('scaledMappingModal');
@@ -1027,7 +1123,7 @@ function saveScaledMapping() {
 // CALCULATOR
 // ========================================
 
-let calcState = {
+var calcState = {
   display: '0',
   operand1: null,
   operator: null,
@@ -1038,8 +1134,8 @@ function initCalculator() {
   const display = document.getElementById('calcDisplay');
   const buttons = document.querySelectorAll('.calc-btn');
   
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
+  buttons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
       const val = btn.dataset.val;
       handleCalcInput(val);
     });
@@ -1061,7 +1157,7 @@ function handleCalcInput(val) {
     return;
   }
   
-  if (val >= '0' && val <= '9' || val === '.') {
+  if ((val >= '0' && val <= '9') || val === '.') {
     if (calcState.waitingForOperand) {
       calcState.display = val;
       calcState.waitingForOperand = false;
@@ -1080,7 +1176,7 @@ function handleCalcInput(val) {
     return;
   }
   
-  if (['+', '-', '*', '/', '%'].includes(val)) {
+  if (['+', '-', '*', '/', '%'].indexOf(val) !== -1) {
     if (calcState.operator && !calcState.waitingForOperand) {
       const result = performCalc(
         parseFloat(calcState.operand1),
@@ -1137,31 +1233,51 @@ function closeModal(modalId) {
 }
 
 // ========================================
-// EVENT LISTENERS
+// 4) EVENT LISTENERS (iOS-safe wiring)
 // ========================================
 
 function initEventListeners() {
-  // Setup screen
-  document.getElementById('startBtn').addEventListener('click', startSession);
+  // Setup screen - bind on DOMContentLoaded
+  const startPracticeBtn = document.getElementById('startBtn');
+  const startQuantBtn = document.getElementById('startQuantBtn');
+  const startVerbalBtn = document.getElementById('startVerbalBtn');
+  const startDIBtn = document.getElementById('startDIbtn');
+  
+  if (startPracticeBtn) {
+    startPracticeBtn.onclick = startFullTest;
+  }
+  if (startQuantBtn) {
+    startQuantBtn.onclick = function() { startSingle('Quant'); };
+  }
+  if (startVerbalBtn) {
+    startVerbalBtn.onclick = function() { startSingle('Verbal'); };
+  }
+  if (startDIBtn) {
+    startDIBtn.onclick = function() { startSingle('Data Insights'); };
+  }
+  
+  // Bank management
+  const reloadBankBtn = document.getElementById('reloadBankBtn');
+  if (reloadBankBtn) {
+    reloadBankBtn.onclick = function() {
+      loadBanks({ force: true }).then(function() {
+        showToast('Banks reloaded successfully', 'success');
+      }).catch(function(err) {
+        showToast('Failed to reload: ' + err.message, 'error');
+      });
+    };
+  }
+  
   document.getElementById('resetBankBtn').addEventListener('click', resetBankExposure);
   document.getElementById('bankStatsBtn').addEventListener('click', showBankStats);
-  document.getElementById('reloadBankBtn').addEventListener('click', () => {
-    loadBanks();
-    showToast('Banks reloaded', 'success');
-  });
-  
-  // Individual section buttons
-  document.getElementById('startQuantBtn').addEventListener('click', () => startPractice('Quant'));
-  document.getElementById('startVerbalBtn').addEventListener('click', () => startPractice('Verbal'));
-  document.getElementById('startDIbtn').addEventListener('click', () => startPractice('Data Insights'));
   
   // Settings
-  document.getElementById('heuristicScalingCheck').addEventListener('change', (e) => {
+  document.getElementById('heuristicScalingCheck').addEventListener('change', function(e) {
     APP_STATE.settings.scaledScoreEnabled = e.target.checked;
     localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
   });
   
-  document.getElementById('exposureControlCheck').addEventListener('change', (e) => {
+  document.getElementById('exposureControlCheck').addEventListener('change', function(e) {
     APP_STATE.settings.exposureControl = e.target.checked;
     localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
   });
@@ -1170,16 +1286,16 @@ function initEventListeners() {
   document.getElementById('saveScaledMappingBtn').addEventListener('click', saveScaledMapping);
   
   // Question screen
-  document.getElementById('prevBtn').addEventListener('click', () => navigateQuestion(-1));
-  document.getElementById('nextBtn').addEventListener('click', () => navigateQuestion(1));
+  document.getElementById('prevBtn').addEventListener('click', function() { navigateQuestion(-1); });
+  document.getElementById('nextBtn').addEventListener('click', function() { navigateQuestion(1); });
   document.getElementById('flagBtn').addEventListener('click', toggleFlag);
   document.getElementById('reviewBtn').addEventListener('click', showReviewScreen);
   
-  document.getElementById('scratchpadBtn').addEventListener('click', () => openModal('scratchpadModal'));
-  document.getElementById('calculatorBtn').addEventListener('click', () => openModal('calculatorModal'));
+  document.getElementById('scratchpadBtn').addEventListener('click', function() { openModal('scratchpadModal'); });
+  document.getElementById('calculatorBtn').addEventListener('click', function() { openModal('calculatorModal'); });
   
   // Review screen
-  document.getElementById('backToQuestionsBtn').addEventListener('click', () => {
+  document.getElementById('backToQuestionsBtn').addEventListener('click', function() {
     showScreen('questionScreen');
     renderQuestion();
     updateTopBar();
@@ -1188,19 +1304,19 @@ function initEventListeners() {
   
   // Results screen
   document.getElementById('exportAttemptBtn').addEventListener('click', exportAttempt);
-  document.getElementById('backToSetupBtn').addEventListener('click', () => {
+  document.getElementById('backToSetupBtn').addEventListener('click', function() {
     showScreen('setupScreen');
     loadHistoryOnSetup();
   });
   
   // Modals
-  document.getElementById('closeScratchpad').addEventListener('click', () => closeModal('scratchpadModal'));
-  document.getElementById('closeCalculator').addEventListener('click', () => closeModal('calculatorModal'));
-  document.getElementById('closeScaledMapping').addEventListener('click', () => closeModal('scaledMappingModal'));
-  document.getElementById('closeBankStats').addEventListener('click', () => closeModal('bankStatsModal'));
+  document.getElementById('closeScratchpad').addEventListener('click', function() { closeModal('scratchpadModal'); });
+  document.getElementById('closeCalculator').addEventListener('click', function() { closeModal('calculatorModal'); });
+  document.getElementById('closeScaledMapping').addEventListener('click', function() { closeModal('scaledMappingModal'); });
+  document.getElementById('closeBankStats').addEventListener('click', function() { closeModal('bankStatsModal'); });
   
   // Close modals on ESC
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       closeModal('scratchpadModal');
       closeModal('calculatorModal');
@@ -1210,8 +1326,8 @@ function initEventListeners() {
   });
   
   // Close modals on backdrop click
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
+  document.querySelectorAll('.modal').forEach(function(modal) {
+    modal.addEventListener('click', function(e) {
       if (e.target === modal) {
         closeModal(modal.id);
       }
@@ -1219,7 +1335,7 @@ function initEventListeners() {
   });
   
   // Keyboard navigation
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', function(e) {
     if (!document.getElementById('questionScreen').classList.contains('active')) return;
     
     if (e.key === 'ArrowLeft') {
@@ -1241,16 +1357,17 @@ function initEventListeners() {
 // ========================================
 
 async function init() {
-  // Attach listeners immediately so UI is responsive even if loading takes time
+  // Attach listeners immediately
   initEventListeners();
   initCalculator();
   loadHistoryOnSetup();
   
+  // Load banks
   try {
     await loadBanks();
   } catch (error) {
     console.error('Failed to load banks during init:', error);
-    // Continue anyway, banks will be loaded lazily
+    showToast('⚠️ Banks failed to load. Click "Reload Banks" to retry.', 'warning');
   }
   
   // Apply settings to UI
@@ -1261,8 +1378,4 @@ async function init() {
 }
 
 // Start app when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+window.addEventListener('DOMContentLoaded', init);

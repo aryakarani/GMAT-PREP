@@ -34,9 +34,9 @@
             </div>
           </div>
           <div class="button-group">
-            <button id="reloadBankBtn" class="btn btn-primary">Reload Banks</button>
-            <button id="resetBankBtn" class="btn btn-secondary">Reset Exposure</button>
-            <button id="bankStatsBtn" class="btn btn-secondary">Bank Stats</button>
+            <button type="button" id="reloadBankBtn" class="btn btn-primary">Reload Banks</button>
+            <button type="button" id="resetBankBtn" class="btn btn-secondary">Reset Exposure</button>
+            <button type="button" id="bankStatsBtn" class="btn btn-secondary">Bank Stats</button>
           </div>
         </div>
 
@@ -70,13 +70,13 @@
               <option value="DVQ">Data Insights → Verbal → Quant</option>
             </select>
           </div>
-          <button id="startBtn" class="btn btn-primary btn-large">Start Practice</button>
+          <button type="button" id="startBtn" class="btn btn-primary btn-large">Start Practice</button>
           
           <!-- Individual Section Buttons -->
           <div class="button-group" style="margin-top: 1rem;">
-            <button id="startQuantBtn" class="btn btn-secondary">Start Quant (21)</button>
-            <button id="startVerbalBtn" class="btn btn-secondary">Start Verbal (23)</button>
-            <button id="startDIbtn" class="btn btn-secondary">Start Data Insights (20)</button>
+            <button type="button" id="startQuantBtn" class="btn btn-secondary">Start Quant (21)</button>
+            <button type="button" id="startVerbalBtn" class="btn btn-secondary">Start Verbal (23)</button>
+            <button type="button" id="startDIbtn" class="btn btn-secondary">Start Data Insights (20)</button>
           </div>
         </div>
 
@@ -96,7 +96,7 @@
                 Enable exposure control (avoid repeats)
               </label>
             </div>
-            <button id="editScaledMappingBtn" class="btn btn-secondary" style="margin-top: 1rem;">Edit Scaled Score Mapping</button>
+            <button type="button" id="editScaledMappingBtn" class="btn btn-secondary" style="margin-top: 1rem;">Edit Scaled Score Mapping</button>
           </div>
         </div>
 
@@ -124,8 +124,8 @@
       </div>
       <div class="top-bar-right">
         <span id="editsLeft" class="edits">Edits: 3</span>
-        <button id="scratchpadBtn" class="btn btn-icon" title="Scratchpad">📝</button>
-        <button id="calculatorBtn" class="btn btn-icon" title="Calculator" style="display:none;">🧮</button>
+        <button type="button" id="scratchpadBtn" class="btn btn-icon" title="Scratchpad">📝</button>
+        <button type="button" id="calculatorBtn" class="btn btn-icon" title="Calculator" style="display:none;">🧮</button>
       </div>
     </div>
 
@@ -134,7 +134,7 @@
       <div class="question-content">
         <div class="question-header">
           <span id="questionNumber">Question 1 of 21</span>
-          <button id="flagBtn" class="btn btn-flag">🚩 Flag</button>
+          <button type="button" id="flagBtn" class="btn btn-flag">🚩 Flag</button>
         </div>
 
         <div id="questionPrompt" class="question-prompt">
@@ -151,9 +151,9 @@
       </div>
 
       <div class="question-nav">
-        <button id="prevBtn" class="btn btn-secondary">← Previous</button>
-        <button id="reviewBtn" class="btn btn-secondary">Review</button>
-        <button id="nextBtn" class="btn btn-primary">Next →</button>
+        <button type="button" id="prevBtn" class="btn btn-secondary">← Previous</button>
+        <button type="button" id="reviewBtn" class="btn btn-secondary">Review</button>
+        <button type="button" id="nextBtn" class="btn btn-primary">Next →</button>
       </div>
     </div>
   </div>
@@ -169,8 +169,8 @@
       </div>
 
       <div class="review-actions">
-        <button id="backToQuestionsBtn" class="btn btn-secondary">Back to Questions</button>
-        <button id="submitSectionBtn" class="btn btn-primary btn-large">Submit Section</button>
+        <button type="button" id="backToQuestionsBtn" class="btn btn-secondary">Back to Questions</button>
+        <button type="button" id="submitSectionBtn" class="btn btn-primary btn-large">Submit Section</button>
       </div>
     </div>
   </div>
@@ -199,8 +199,8 @@
       </div>
 
       <div class="results-actions">
-        <button id="exportAttemptBtn" class="btn btn-secondary">Export This Attempt</button>
-        <button id="backToSetupBtn" class="btn btn-primary btn-large">New Practice Session</button>
+        <button type="button" id="exportAttemptBtn" class="btn btn-secondary">Export This Attempt</button>
+        <button type="button" id="backToSetupBtn" class="btn btn-primary btn-large">New Practice Session</button>
       </div>
     </div>
   </div>
@@ -210,7 +210,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>📝 Scratchpad</h3>
-        <button class="modal-close" id="closeScratchpad">&times;</button>
+        <button type="button" class="modal-close" id="closeScratchpad">&times;</button>
       </div>
       <div class="modal-body">
         <textarea id="scratchpadText" placeholder="Take notes here... (not saved between sessions)" rows="10"></textarea>
@@ -223,32 +223,32 @@
     <div class="modal-content calculator-modal">
       <div class="modal-header">
         <h3>🧮 Calculator</h3>
-        <button class="modal-close" id="closeCalculator">&times;</button>
+        <button type="button" class="modal-close" id="closeCalculator">&times;</button>
       </div>
       <div class="modal-body">
         <div class="calculator">
           <input type="text" id="calcDisplay" class="calc-display" readonly>
           <div class="calc-buttons">
-            <button class="calc-btn" data-val="7">7</button>
-            <button class="calc-btn" data-val="8">8</button>
-            <button class="calc-btn" data-val="9">9</button>
-            <button class="calc-btn calc-op" data-val="/">÷</button>
-            <button class="calc-btn" data-val="4">4</button>
-            <button class="calc-btn" data-val="5">5</button>
-            <button class="calc-btn" data-val="6">6</button>
-            <button class="calc-btn calc-op" data-val="*">×</button>
-            <button class="calc-btn" data-val="1">1</button>
-            <button class="calc-btn" data-val="2">2</button>
-            <button class="calc-btn" data-val="3">3</button>
-            <button class="calc-btn calc-op" data-val="-">−</button>
-            <button class="calc-btn" data-val="0">0</button>
-            <button class="calc-btn" data-val=".">.</button>
-            <button class="calc-btn calc-op" data-val="sqrt">√</button>
-            <button class="calc-btn calc-op" data-val="+">+</button>
-            <button class="calc-btn calc-op" data-val="%">%</button>
-            <button class="calc-btn calc-clear" data-val="C">C</button>
-            <button class="calc-btn calc-back" data-val="back">⌫</button>
-            <button class="calc-btn calc-equals" data-val="=">=</button>
+            <button type="button" class="calc-btn" data-val="7">7</button>
+            <button type="button" class="calc-btn" data-val="8">8</button>
+            <button type="button" class="calc-btn" data-val="9">9</button>
+            <button type="button" class="calc-btn calc-op" data-val="/">÷</button>
+            <button type="button" class="calc-btn" data-val="4">4</button>
+            <button type="button" class="calc-btn" data-val="5">5</button>
+            <button type="button" class="calc-btn" data-val="6">6</button>
+            <button type="button" class="calc-btn calc-op" data-val="*">×</button>
+            <button type="button" class="calc-btn" data-val="1">1</button>
+            <button type="button" class="calc-btn" data-val="2">2</button>
+            <button type="button" class="calc-btn" data-val="3">3</button>
+            <button type="button" class="calc-btn calc-op" data-val="-">−</button>
+            <button type="button" class="calc-btn" data-val="0">0</button>
+            <button type="button" class="calc-btn" data-val=".">.</button>
+            <button type="button" class="calc-btn calc-op" data-val="sqrt">√</button>
+            <button type="button" class="calc-btn calc-op" data-val="+">+</button>
+            <button type="button" class="calc-btn calc-op" data-val="%">%</button>
+            <button type="button" class="calc-btn calc-clear" data-val="C">C</button>
+            <button type="button" class="calc-btn calc-back" data-val="back">⌫</button>
+            <button type="button" class="calc-btn calc-equals" data-val="=">=</button>
           </div>
         </div>
       </div>
@@ -260,7 +260,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>⚙️ Scaled Score Mapping</h3>
-        <button class="modal-close" id="closeScaledMapping">&times;</button>
+        <button type="button" class="modal-close" id="closeScaledMapping">&times;</button>
       </div>
       <div class="modal-body">
         <p class="modal-description">
@@ -271,7 +271,7 @@
           <label>Mapping Points (format: percent:score, one per line)</label>
           <textarea id="scaledMappingText" rows="6" placeholder="55:605&#10;65:655&#10;75:705&#10;85:745&#10;95:805"></textarea>
         </div>
-        <button id="saveScaledMappingBtn" class="btn btn-primary">Save Mapping</button>
+        <button type="button" id="saveScaledMappingBtn" class="btn btn-primary">Save Mapping</button>
       </div>
     </div>
   </div>
@@ -281,7 +281,7 @@
     <div class="modal-content modal-large">
       <div class="modal-header">
         <h3>📊 Bank Statistics</h3>
-        <button class="modal-close" id="closeBankStats">&times;</button>
+        <button type="button" class="modal-close" id="closeBankStats">&times;</button>
       </div>
       <div class="modal-body">
         <div id="bankStatsContent"></div>
