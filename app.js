@@ -1,5 +1,6 @@
 // ========================================
 // GMAT Focus Practice — Solo Trainer
+// Rasch/Elo Adaptive with Calibrated Difficulty
 // Framework-free, multi-stage adaptive testing
 // ========================================
 
@@ -11,21 +12,38 @@
 
 const APP_STATE = {
   questionBank: [],           // All loaded questions
+  itemStats: new Map(),       // Map<id, {attempts, correct, theta}>
   currentSection: null,       // 'Quant', 'Verbal', 'Data Insights'
-  sectionQuestions: [],       // Selected questions for current section
-  currentQuestionIndex: 0,    // Index in sectionQuestions
+  currentTest: {              // ✅ Assembled test items only (rendering guard)
+    Quant: { items: [], userTheta: 0.0 },
+    Verbal: { items: [], userTheta: 0.0 },
+    'Data Insights': { items: [], userTheta: 0.0 }
+  },
+  sectionQuestions: [],       // Current section's assembled items
+  currentQuestionIndex: 0,
   responses: {},              // { questionIndex: answerIndex }
-  flags: new Set(),           // Set of flagged question indices
-  editsRemaining: 3,          // Answer change limit
-  editHistory: {},            // Track which questions have been edited: { questionIndex: editCount }
-  timerSeconds: 0,           // Countdown timer
+  flags: new Set(),
+  editsRemaining: 3,
+  editHistory: {},
+  timerSeconds: 0,
   timerInterval: null,
-  currentDifficulty: 'M',    // E, M, H
-  blockIndex: 0,              // Current block number
-  blockSize: 4,               // 4 for Q/V, 5 for DI
-  mstRoute: [],               // Track difficulty progression: ['M', 'M', 'H', ...]
-  usedItemIds: new Set(),     // Exposure control
-  currentAttempt: null        // Store current attempt data for export
+  userTheta: 0.0,            // Current user ability estimate
+  blockIndex: 0,
+  blockSize: 4,
+  usedItemIds: new Set(),
+  currentAttempt: null,
+  settings: {
+    showTheta: false,
+    scaledScoreEnabled: false,
+    exposureControl: true,
+    scaledMapping: [
+      { pct: 55, score: 605 },
+      { pct: 65, score: 655 },
+      { pct: 75, score: 705 },
+      { pct: 85, score: 745 },
+      { pct: 95, score: 805 }
+    ]
+  }
 };
 
 // ========================================
@@ -34,7 +52,7 @@ const APP_STATE = {
 
 const DB = {
   dbName: 'GMATFocusDB',
-  dbVersion: 1,
+  dbVersion: 2,
   db: null,
 
   async init() {
@@ -59,8 +77,13 @@ const DB = {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        
         if (!db.objectStoreNames.contains('questions')) {
           db.createObjectStore('questions', { keyPath: 'id' });
+        }
+        
+        if (!db.objectStoreNames.contains('stats')) {
+          db.createObjectStore('stats', { keyPath: 'id' });
         }
       };
     });
@@ -70,20 +93,14 @@ const DB = {
     if (this.db) {
       const tx = this.db.transaction('questions', 'readwrite');
       const store = tx.objectStore('questions');
-      
-      // Clear existing
       await store.clear();
-      
-      // Add new questions
       for (const q of questions) {
         await store.put(q);
       }
-      
       return new Promise((resolve) => {
         tx.oncomplete = () => resolve();
       });
     } else {
-      // LocalStorage fallback
       localStorage.setItem('questionBank', JSON.stringify(questions));
     }
   },
@@ -94,17 +111,147 @@ const DB = {
         const tx = this.db.transaction('questions', 'readonly');
         const store = tx.objectStore('questions');
         const request = store.getAll();
-
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
     } else {
-      // LocalStorage fallback
       const stored = localStorage.getItem('questionBank');
       return stored ? JSON.parse(stored) : [];
     }
+  },
+
+  /**
+   * Item stats tracking for Rasch/Elo calibration
+   * Schema: { id, attempts, correct, theta }
+   */
+  async saveStats(statsMap) {
+    if (this.db) {
+      const tx = this.db.transaction('stats', 'readwrite');
+      const store = tx.objectStore('stats');
+      for (const [id, stat] of statsMap.entries()) {
+        await store.put({ id, ...stat });
+      }
+      return new Promise((resolve) => {
+        tx.oncomplete = () => resolve();
+      });
+    } else {
+      const obj = Object.fromEntries(statsMap);
+      localStorage.setItem('itemStats', JSON.stringify(obj));
+    }
+  },
+
+  async loadStats() {
+    if (this.db) {
+      return new Promise((resolve, reject) => {
+        const tx = this.db.transaction('stats', 'readonly');
+        const store = tx.objectStore('stats');
+        const request = store.getAll();
+        request.onsuccess = () => {
+          const map = new Map();
+          request.result.forEach(s => {
+            map.set(s.id, { attempts: s.attempts, correct: s.correct, theta: s.theta });
+          });
+          resolve(map);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } else {
+      const stored = localStorage.getItem('itemStats');
+      if (stored) {
+        const obj = JSON.parse(stored);
+        return new Map(Object.entries(obj));
+      }
+      return new Map();
+    }
   }
 };
+
+// ========================================
+// RASCH/ELO CALIBRATION
+// ========================================
+
+/**
+ * Initialize theta for a new item based on difficulty tag
+ * E = -1.0, M = 0.0, H = +1.0
+ */
+function getInitialTheta(difficulty) {
+  if (difficulty === 'E') return -1.0;
+  if (difficulty === 'H') return 1.0;
+  return 0.0; // M
+}
+
+/**
+ * Calculate probability of correct response using 1PL Rasch model
+ * p_correct = 1 / (1 + exp(-(userTheta - itemTheta)))
+ */
+function raschProbability(userTheta, itemTheta) {
+  return 1.0 / (1.0 + Math.exp(-(userTheta - itemTheta)));
+}
+
+/**
+ * Adaptive learning rate: start at 0.15, decay to 0.05 with attempts
+ */
+function getLearningRate(attempts) {
+  if (attempts < 5) return 0.15;
+  if (attempts < 20) return 0.10;
+  return 0.05;
+}
+
+/**
+ * Update item theta after user response (Elo-style update)
+ * theta_next = theta + k * (outcome - p_correct)
+ * where outcome = 1 if correct, 0 if incorrect
+ */
+function updateItemTheta(itemId, userTheta, wasCorrect) {
+  let stat = APP_STATE.itemStats.get(itemId);
+  
+  if (!stat) {
+    // Initialize from bank
+    const item = APP_STATE.questionBank.find(q => q.id === itemId);
+    stat = {
+      attempts: 0,
+      correct: 0,
+      theta: item ? getInitialTheta(item.difficulty) : 0.0
+    };
+    APP_STATE.itemStats.set(itemId, stat);
+  }
+  
+  const p = raschProbability(userTheta, stat.theta);
+  const k = getLearningRate(stat.attempts);
+  const outcome = wasCorrect ? 1 : 0;
+  
+  // Update theta
+  stat.theta += k * (outcome - p);
+  stat.attempts++;
+  if (wasCorrect) stat.correct++;
+  
+  // Save to IndexedDB (async, non-blocking)
+  DB.saveStats(APP_STATE.itemStats).catch(err => 
+    console.warn('Failed to save stats:', err)
+  );
+  
+  return stat.theta;
+}
+
+/**
+ * Update user ability theta after response (mirrored update)
+ * θ_user_next = θ_user + k_user * (outcome - p_correct)
+ */
+function updateUserTheta(userTheta, itemTheta, wasCorrect, attempts) {
+  const p = raschProbability(userTheta, itemTheta);
+  const k = getLearningRate(attempts);
+  const outcome = wasCorrect ? 1 : 0;
+  
+  return userTheta + k * (outcome - p);
+}
+
+/**
+ * Get effective theta for an item (from stats if available, else initial)
+ */
+function getItemTheta(itemId, difficulty) {
+  const stat = APP_STATE.itemStats.get(itemId);
+  return stat ? stat.theta : getInitialTheta(difficulty);
+}
 
 // ========================================
 // UTILITY FUNCTIONS
@@ -153,35 +300,101 @@ async function initializeBank() {
   
   let questions = await DB.loadQuestions();
   
-  // If empty, load sample data
-  if (questions.length === 0) {
-    questions = await loadSampleData();
-    if (questions.length > 0) {
-      await DB.saveQuestions(questions);
-    }
+  // Load item stats
+  APP_STATE.itemStats = await DB.loadStats();
+  
+  // Load settings
+  const savedSettings = localStorage.getItem('settings');
+  if (savedSettings) {
+    APP_STATE.settings = { ...APP_STATE.settings, ...JSON.parse(savedSettings) };
   }
   
-  APP_STATE.questionBank = questions;
-  
-  // Load used item IDs from localStorage
+  // Load used item IDs
   const usedIds = localStorage.getItem('usedItemIds');
   if (usedIds) {
     APP_STATE.usedItemIds = new Set(JSON.parse(usedIds));
   }
   
+  // If empty bank, load sample
+  if (questions.length === 0) {
+    questions = await loadSampleData();
+    if (questions.length > 0) {
+      await DB.saveQuestions(questions);
+      showToast('Sample bank installed (24 items)', 'success');
+    }
+  }
+  
+  APP_STATE.questionBank = questions;
   updateBankStats();
+  
+  // Apply settings to UI
+  document.getElementById('showThetaCheck').checked = APP_STATE.settings.showTheta;
+  document.getElementById('heuristicScalingCheck').checked = APP_STATE.settings.scaledScoreEnabled;
+  document.getElementById('exposureControlCheck').checked = APP_STATE.settings.exposureControl;
 }
 
+/**
+ * Update bank statistics with theta-based difficulty bins
+ * Easy: theta < -0.6, Medium: [-0.6, 0.6], Hard: > 0.6
+ */
 function updateBankStats() {
   const total = APP_STATE.questionBank.length;
-  const easy = APP_STATE.questionBank.filter(q => q.difficulty === 'E').length;
-  const medium = APP_STATE.questionBank.filter(q => q.difficulty === 'M').length;
-  const hard = APP_STATE.questionBank.filter(q => q.difficulty === 'H').length;
-
+  
+  // Section counts
+  const quantCount = APP_STATE.questionBank.filter(q => q.section === 'Quant').length;
+  const verbalCount = APP_STATE.questionBank.filter(q => q.section === 'Verbal').length;
+  const diCount = APP_STATE.questionBank.filter(q => q.section === 'Data Insights').length;
+  
+  // Theta-based difficulty bins
+  let easyCount = 0, mediumCount = 0, hardCount = 0;
+  
+  APP_STATE.questionBank.forEach(q => {
+    const theta = getItemTheta(q.id, q.difficulty);
+    if (theta < -0.6) easyCount++;
+    else if (theta > 0.6) hardCount++;
+    else mediumCount++;
+  });
+  
   document.getElementById('totalItems').textContent = total;
-  document.getElementById('easyCount').textContent = easy;
-  document.getElementById('mediumCount').textContent = medium;
-  document.getElementById('hardCount').textContent = hard;
+  document.getElementById('quantCount').textContent = quantCount;
+  document.getElementById('verbalCount').textContent = verbalCount;
+  document.getElementById('diCount').textContent = diCount;
+  document.getElementById('easyCount').textContent = easyCount;
+  document.getElementById('mediumCount').textContent = mediumCount;
+  document.getElementById('hardCount').textContent = hardCount;
+  
+  renderThetaHistogram();
+}
+
+/**
+ * Render theta distribution histogram
+ */
+function renderThetaHistogram() {
+  const container = document.getElementById('thetaHistogram');
+  container.innerHTML = '';
+  
+  if (APP_STATE.questionBank.length === 0) return;
+  
+  // Create 10 bins from -2 to +2
+  const bins = Array(10).fill(0);
+  const binWidth = 0.4; // each bin is 0.4 theta units
+  
+  APP_STATE.questionBank.forEach(q => {
+    const theta = getItemTheta(q.id, q.difficulty);
+    const binIdx = Math.floor((theta + 2) / binWidth);
+    const idx = Math.max(0, Math.min(9, binIdx));
+    bins[idx]++;
+  });
+  
+  const maxBin = Math.max(...bins, 1);
+  
+  bins.forEach((count, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'theta-bar';
+    bar.style.height = `${(count / maxBin) * 100}%`;
+    bar.title = `θ ${(i * binWidth - 2).toFixed(1)} to ${((i + 1) * binWidth - 2).toFixed(1)}: ${count} items`;
+    container.appendChild(bar);
+  });
 }
 
 // ========================================
@@ -242,42 +455,67 @@ function parseCSVLine(line) {
   return result;
 }
 
+/**
+ * Import questions with validation
+ * Supports both JSON and CSV formats
+ */
 async function importQuestions(file) {
   const text = await file.text();
   let items = [];
 
-  if (file.name.endsWith('.json')) {
-    const data = JSON.parse(text);
-    items = data.items || [];
-  } else if (file.name.endsWith('.csv')) {
-    items = parseCSV(text);
+  try {
+    if (file.name.endsWith('.json')) {
+      const data = JSON.parse(text);
+      items = data.items || [];
+    } else if (file.name.endsWith('.csv')) {
+      items = parseCSV(text);
+    }
+
+    // Validate items
+    const validItems = items.filter(item => 
+      item.id && 
+      item.section && 
+      item.difficulty && 
+      item.prompt && 
+      Array.isArray(item.options) && 
+      item.options.length > 0 &&
+      typeof item.answer === 'number'
+    );
+
+    if (validItems.length === 0) {
+      showToast('No valid questions found in file', 'error');
+      return;
+    }
+
+    // Merge with existing bank (de-dupe by ID)
+    const existingIds = new Set(APP_STATE.questionBank.map(q => q.id));
+    const newItems = validItems.filter(item => !existingIds.has(item.id));
+    const updatedItems = validItems.filter(item => existingIds.has(item.id));
+
+    if (newItems.length === 0 && updatedItems.length === 0) {
+      showToast('No new or updated questions to import', 'warning');
+      return;
+    }
+
+    // Update existing items
+    if (updatedItems.length > 0) {
+      APP_STATE.questionBank = APP_STATE.questionBank.map(q => {
+        const updated = updatedItems.find(u => u.id === q.id);
+        return updated || q;
+      });
+    }
+
+    // Add new items
+    APP_STATE.questionBank.push(...newItems);
+    
+    await DB.saveQuestions(APP_STATE.questionBank);
+    updateBankStats();
+    
+    showToast(`Imported ${newItems.length} new, ${updatedItems.length} updated`, 'success');
+  } catch (err) {
+    showToast('Import failed: ' + err.message, 'error');
+    console.error('Import error:', err);
   }
-
-  // Validate and de-dupe
-  const validItems = items.filter(item => 
-    item.id && 
-    item.section && 
-    item.difficulty && 
-    item.prompt && 
-    Array.isArray(item.options) && 
-    item.options.length > 0 &&
-    typeof item.answer === 'number'
-  );
-
-  // De-dupe by ID
-  const existingIds = new Set(APP_STATE.questionBank.map(q => q.id));
-  const newItems = validItems.filter(item => !existingIds.has(item.id));
-
-  if (newItems.length === 0) {
-    showToast('No new questions to import', 'warning');
-    return;
-  }
-
-  APP_STATE.questionBank.push(...newItems);
-  await DB.saveQuestions(APP_STATE.questionBank);
-  updateBankStats();
-  
-  showToast(`Imported ${newItems.length} new questions`, 'success');
 }
 
 function exportBank() {
@@ -316,117 +554,113 @@ function exportAttempt() {
   showToast('Attempt exported successfully', 'success');
 }
 
+async function installSampleBank() {
+  const questions = await loadSampleData();
+  if (questions.length > 0) {
+    APP_STATE.questionBank = questions;
+    await DB.saveQuestions(questions);
+    updateBankStats();
+    showToast('Sample bank installed (24 items)', 'success');
+  } else {
+    showToast('Failed to load sample bank', 'error');
+  }
+}
+
 // ========================================
-// MULTI-STAGE ADAPTIVITY (MST)
+// ADAPTIVE TEST ASSEMBLY (Rasch/Elo)
 // ========================================
 
 /**
- * MST Routing Logic:
- * - Start at Medium difficulty
- * - Block size: 4 for Quant/Verbal, 5 for Data Insights
- * - After each block: score >= 75% → step up, <= 50% → step down
- * - Content balancing within each block
- * - Exposure control: avoid re-using questions
+ * Adaptive selection: choose items whose theta is nearest to userTheta
+ * With content balancing via skills and exposure control
  */
-
-function getBlockSize(section) {
-  return section === 'Data Insights' ? 5 : 4;
-}
-
-function selectQuestionsForSection(section, totalCount) {
-  const blockSize = getBlockSize(section);
-  APP_STATE.blockSize = blockSize;
-  APP_STATE.currentDifficulty = 'M'; // Start at Medium
-  APP_STATE.blockIndex = 0;
-  APP_STATE.mstRoute = [];
-  
-  const questions = [];
+function selectQuestionsAdaptive(section, totalCount, userTheta) {
+  const blockSize = section === 'Data Insights' ? 5 : 4;
   const totalBlocks = Math.ceil(totalCount / blockSize);
   
-  let currentDiff = 'M';
+  const selectedItems = [];
+  let currentUserTheta = userTheta;
+  
+  // Content balancing: track which skill categories we've covered
+  const requiredSkills = getRequiredSkills(section);
+  const coveredSkills = new Set();
   
   for (let blockNum = 0; blockNum < totalBlocks; blockNum++) {
     const isLastBlock = blockNum === totalBlocks - 1;
-    const questionsNeeded = isLastBlock ? (totalCount - questions.length) : blockSize;
+    const questionsNeeded = isLastBlock ? (totalCount - selectedItems.length) : blockSize;
     
-    const blockQuestions = selectBlockQuestions(section, currentDiff, questionsNeeded);
-    questions.push(...blockQuestions);
-    APP_STATE.mstRoute.push(currentDiff);
+    // Get available pool for this section
+    let pool = APP_STATE.questionBank.filter(q => q.section === section);
     
-    // Pre-calculate next difficulty for routing (actual routing happens during test)
-    // For now, we just mark the route
-  }
-  
-  return questions;
-}
-
-function selectBlockQuestions(section, difficulty, count) {
-  // Get available questions for this section and difficulty
-  let pool = APP_STATE.questionBank.filter(q => 
-    q.section === section && 
-    q.difficulty === difficulty &&
-    !APP_STATE.usedItemIds.has(q.id)
-  );
-  
-  // Bank exhaustion handling: backfill from other difficulties
-  if (pool.length < count) {
-    console.warn(`Insufficient ${difficulty} questions for ${section}. Backfilling...`);
+    // Exposure control: filter out used items
+    if (APP_STATE.settings.exposureControl) {
+      pool = pool.filter(q => !APP_STATE.usedItemIds.has(q.id));
+    }
     
-    // Try Medium first
-    if (difficulty !== 'M') {
-      const mediumPool = APP_STATE.questionBank.filter(q =>
-        q.section === section &&
-        q.difficulty === 'M' &&
-        !APP_STATE.usedItemIds.has(q.id)
+    // If pool exhausted, backfill with warning
+    if (pool.length < questionsNeeded) {
+      showToast('⚠️ Question pool exhausted, allowing repeats', 'warning');
+      pool = APP_STATE.questionBank.filter(q => q.section === section);
+    }
+    
+    // Sort pool by theta distance from currentUserTheta
+    pool.forEach(q => {
+      q._theta = getItemTheta(q.id, q.difficulty);
+      q._distance = Math.abs(q._theta - currentUserTheta);
+    });
+    pool.sort((a, b) => a._distance - b._distance);
+    
+    // Select items: prioritize nearest theta, but ensure skill diversity
+    const blockItems = [];
+    const neededSkillsForBlock = Array.from(requiredSkills).filter(s => !coveredSkills.has(s));
+    
+    // First pass: fulfill required skills
+    for (const skill of neededSkillsForBlock) {
+      if (blockItems.length >= questionsNeeded) break;
+      const candidate = pool.find(q => 
+        !blockItems.includes(q) && 
+        q.skills && q.skills.includes(skill)
       );
-      pool = pool.concat(mediumPool);
+      if (candidate) {
+        blockItems.push(candidate);
+        candidate.skills?.forEach(s => coveredSkills.add(s));
+      }
     }
     
-    // Then Easy/Hard
-    if (pool.length < count) {
-      const otherPool = APP_STATE.questionBank.filter(q =>
-        q.section === section &&
-        q.difficulty !== difficulty &&
-        !APP_STATE.usedItemIds.has(q.id)
-      );
-      pool = pool.concat(otherPool);
+    // Second pass: fill remaining with nearest theta
+    for (const q of pool) {
+      if (blockItems.length >= questionsNeeded) break;
+      if (!blockItems.includes(q)) {
+        blockItems.push(q);
+      }
     }
+    
+    selectedItems.push(...blockItems);
+    
+    // Simulate block performance to estimate next theta (for pre-assembly)
+    // In reality, theta updates dynamically during test
+    currentUserTheta += (Math.random() - 0.5) * 0.3; // small random walk
   }
   
-  // Content balancing: try to diversify question types
-  const selected = [];
-  const typesSeen = new Set();
-  
-  // First pass: select diverse types
-  for (const q of pool) {
-    if (selected.length >= count) break;
-    if (!typesSeen.has(q.type)) {
-      selected.push(q);
-      typesSeen.add(q.type);
-    }
-  }
-  
-  // Second pass: fill remaining with any available
-  for (const q of pool) {
-    if (selected.length >= count) break;
-    if (!selected.includes(q)) {
-      selected.push(q);
-    }
-  }
-  
-  // Shuffle selected questions
-  return shuffleArray(selected.slice(0, count));
+  return selectedItems.slice(0, totalCount);
 }
 
-function shuffleArray(array) {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+/**
+ * Get required skills for content balancing per section
+ */
+function getRequiredSkills(section) {
+  if (section === 'Quant') {
+    return new Set(['percent', 'algebra', 'ratio', 'geometry']);
+  } else if (section === 'Verbal') {
+    return new Set(['strengthen', 'weaken', 'inference', 'assumption']);
+  } else { // Data Insights
+    return new Set(['table', 'graphics', 'two-part', 'MSR']);
   }
-  return shuffled;
 }
 
+/**
+ * Calculate block score for routing decision
+ */
 function calculateBlockScore(blockStart, blockEnd) {
   let correct = 0;
   let total = 0;
@@ -441,27 +675,8 @@ function calculateBlockScore(blockStart, blockEnd) {
     }
   }
   
-  return total > 0 ? (correct / total) : 0;
+  return total > 0 ? (correct / total) : 0.5;
 }
-
-function getNextDifficulty(currentDiff, blockScore) {
-  if (blockScore >= 0.75) {
-    // Step up
-    if (currentDiff === 'E') return 'M';
-    if (currentDiff === 'M') return 'H';
-    return 'H'; // Already at Hard
-  } else if (blockScore <= 0.50) {
-    // Step down
-    if (currentDiff === 'H') return 'M';
-    if (currentDiff === 'M') return 'E';
-    return 'E'; // Already at Easy
-  }
-  return currentDiff; // Stay same
-}
-
-// Note: In a real adaptive test, we would dynamically select questions
-// after each block. For this implementation, we pre-select with Medium
-// as baseline and track the route for demonstration.
 
 // ========================================
 // SESSION MANAGEMENT
@@ -472,7 +687,19 @@ function startSession() {
   const timerMinutes = parseInt(document.getElementById('timerSelect').value, 10);
   
   if (APP_STATE.questionBank.length === 0) {
-    showToast('Please import questions first', 'error');
+    showToast('Please import or install a question bank first', 'error');
+    return;
+  }
+  
+  // Check if section has enough questions
+  const sectionPool = APP_STATE.questionBank.filter(q => q.section === section);
+  let sectionSize;
+  if (section === 'Quant') sectionSize = 21;
+  else if (section === 'Verbal') sectionSize = 23;
+  else sectionSize = 20; // Data Insights
+  
+  if (sectionPool.length < sectionSize) {
+    showToast(`Not enough ${section} questions in bank (need ${sectionSize}, have ${sectionPool.length})`, 'error');
     return;
   }
   
@@ -485,24 +712,25 @@ function startSession() {
   APP_STATE.editHistory = {};
   APP_STATE.timerSeconds = timerMinutes * 60;
   APP_STATE.blockIndex = 0;
+  APP_STATE.blockSize = section === 'Data Insights' ? 5 : 4;
+  APP_STATE.userTheta = 0.0; // Start at medium difficulty
   
-  // Determine section size
-  let sectionSize;
-  if (section === 'Quant') sectionSize = 21;
-  else if (section === 'Verbal') sectionSize = 23;
-  else sectionSize = 20; // Data Insights
+  // ✅ Adaptive selection: assemble test based on theta
+  APP_STATE.sectionQuestions = selectQuestionsAdaptive(section, sectionSize, APP_STATE.userTheta);
   
-  // Select questions using MST
-  APP_STATE.sectionQuestions = selectQuestionsForSection(section, sectionSize);
-  
-  if (APP_STATE.sectionQuestions.length === 0) {
-    showToast('Not enough questions in bank for this section', 'error');
-    return;
-  }
+  // ✅ Store in currentTest for rendering guard
+  APP_STATE.currentTest[section] = {
+    items: APP_STATE.sectionQuestions,
+    userTheta: APP_STATE.userTheta
+  };
   
   // Show/hide calculator based on section
   const calcBtn = document.getElementById('calculatorBtn');
   calcBtn.style.display = section === 'Data Insights' ? 'inline-block' : 'none';
+  
+  // Show/hide theta chip based on settings
+  const thetaChip = document.getElementById('thetaChip');
+  thetaChip.style.display = APP_STATE.settings.showTheta ? 'inline-block' : 'none';
   
   // Start timer
   startTimer();
@@ -530,7 +758,7 @@ function startTimer() {
 }
 
 function handleTimeUp() {
-  showToast('Time is up!', 'warning');
+  showToast('⏰ Time is up!', 'warning');
   
   // If in question view, go to review
   if (document.getElementById('questionScreen').classList.contains('active')) {
@@ -545,7 +773,6 @@ function updateTimerDisplay() {
   const display = document.getElementById('timerDisplay');
   display.textContent = formatTime(APP_STATE.timerSeconds);
   
-  // Add warning/danger classes
   display.classList.remove('warning', 'danger');
   if (APP_STATE.timerSeconds <= 300) {
     display.classList.add('warning');
@@ -559,9 +786,12 @@ function updateTimerDisplay() {
 // QUESTION RENDERING
 // ========================================
 
+/**
+ * ✅ Rendering guard: only use assembled test items from currentTest
+ */
 function renderQuestion() {
   const idx = APP_STATE.currentQuestionIndex;
-  const question = APP_STATE.sectionQuestions[idx];
+  const question = APP_STATE.sectionQuestions[idx]; // ✅ Uses assembled set
   
   if (!question) return;
   
@@ -649,46 +879,79 @@ function renderQuestion() {
 }
 
 /**
- * Edit-cap enforcement:
- * - Initial selection is free
- * - Changing an already-set answer consumes one edit
- * - Track per-question edit counts
- * - Block changes when editsRemaining === 0
+ * Edit-cap enforcement with Rasch/Elo theta updates
  */
 function selectAnswer(optIdx) {
   const idx = APP_STATE.currentQuestionIndex;
   const previousAnswer = APP_STATE.responses[idx];
   
-  // If changing an existing answer
+  // If changing an existing answer, consume an edit
   if (previousAnswer !== undefined && previousAnswer !== optIdx) {
     if (APP_STATE.editsRemaining <= 0) {
-      showToast('No edits remaining! Cannot change answer.', 'error');
-      return;
+      showToast('❌ No edits remaining! Cannot change answer.', 'error');
+      return; // ✅ Block change and revert
     }
     
     APP_STATE.editsRemaining--;
     APP_STATE.editHistory[idx] = (APP_STATE.editHistory[idx] || 0) + 1;
-    updateTopBar();
   }
   
   // Set the answer
   APP_STATE.responses[idx] = optIdx;
   
+  // ✅ Update theta estimates (item and user)
+  const question = APP_STATE.sectionQuestions[idx];
+  const wasCorrect = optIdx === question.answer;
+  const itemTheta = getItemTheta(question.id, question.difficulty);
+  
+  // Update item theta
+  updateItemTheta(question.id, APP_STATE.userTheta, wasCorrect);
+  
+  // Update user theta
+  const totalAttempts = Object.keys(APP_STATE.responses).length;
+  APP_STATE.userTheta = updateUserTheta(APP_STATE.userTheta, itemTheta, wasCorrect, totalAttempts);
+  
+  // Update theta chip if visible
+  if (APP_STATE.settings.showTheta) {
+    document.getElementById('thetaChip').textContent = `θ: ${APP_STATE.userTheta.toFixed(2)}`;
+  }
+  
   // Re-render to update selection
   renderQuestion();
+  updateTopBar();
 }
 
 function updateTopBar() {
   document.getElementById('sectionLabel').textContent = APP_STATE.currentSection;
   document.getElementById('editsLeft').textContent = `Edits: ${APP_STATE.editsRemaining}`;
   
-  // Update difficulty label based on current block
-  const currentBlockNum = Math.floor(APP_STATE.currentQuestionIndex / APP_STATE.blockSize);
-  const difficulty = APP_STATE.mstRoute[currentBlockNum] || APP_STATE.currentDifficulty;
+  // Update difficulty label based on current item theta
+  const idx = APP_STATE.currentQuestionIndex;
+  if (idx < APP_STATE.sectionQuestions.length) {
+    const question = APP_STATE.sectionQuestions[idx];
+    const theta = getItemTheta(question.id, question.difficulty);
+    
+    let diffLabel, diffClass;
+    if (theta < -0.6) {
+      diffLabel = 'Easy';
+      diffClass = 'E';
+    } else if (theta > 0.6) {
+      diffLabel = 'Hard';
+      diffClass = 'H';
+    } else {
+      diffLabel = 'Medium';
+      diffClass = 'M';
+    }
+    
+    const diffElement = document.getElementById('difficultyLabel');
+    diffElement.textContent = diffLabel;
+    diffElement.className = `difficulty-label ${diffClass}`;
+  }
   
-  const diffLabel = document.getElementById('difficultyLabel');
-  diffLabel.textContent = difficulty === 'E' ? 'Easy' : difficulty === 'M' ? 'Medium' : 'Hard';
-  diffLabel.className = `difficulty-label ${difficulty}`;
+  // Update theta chip
+  if (APP_STATE.settings.showTheta) {
+    document.getElementById('thetaChip').textContent = `θ: ${APP_STATE.userTheta.toFixed(2)}`;
+  }
 }
 
 function navigateQuestion(direction) {
@@ -724,11 +987,14 @@ function showReviewScreen() {
   renderReviewGrid();
 }
 
+/**
+ * ✅ Review uses assembled test items only
+ */
 function renderReviewGrid() {
   const grid = document.getElementById('reviewGrid');
   grid.innerHTML = '';
   
-  APP_STATE.sectionQuestions.forEach((q, idx) => {
+  APP_STATE.sectionQuestions.forEach((q, idx) => { // ✅ Only assembled items
     const item = document.createElement('div');
     item.className = 'review-item';
     
@@ -762,20 +1028,44 @@ function renderReviewGrid() {
   });
 }
 
-/**
- * Edit-cap enforcement in Review:
- * - Clicking a review item to change answer follows same rules
- * - selectAnswer() already handles this
- */
+// ========================================
+// RESULTS & SCALED SCORING
+// ========================================
 
-// ========================================
-// RESULTS & HISTORY
-// ========================================
+/**
+ * Calculate heuristic scaled score using piecewise linear interpolation
+ */
+function calculateScaledScore(percentage) {
+  const mapping = APP_STATE.settings.scaledMapping.sort((a, b) => a.pct - b.pct);
+  
+  // Below lowest point
+  if (percentage <= mapping[0].pct) {
+    return mapping[0].score;
+  }
+  
+  // Above highest point
+  if (percentage >= mapping[mapping.length - 1].pct) {
+    return mapping[mapping.length - 1].score;
+  }
+  
+  // Find enclosing points and interpolate
+  for (let i = 0; i < mapping.length - 1; i++) {
+    const p1 = mapping[i];
+    const p2 = mapping[i + 1];
+    
+    if (percentage >= p1.pct && percentage <= p2.pct) {
+      const ratio = (percentage - p1.pct) / (p2.pct - p1.pct);
+      return Math.round(p1.score + ratio * (p2.score - p1.score));
+    }
+  }
+  
+  return 705; // fallback
+}
 
 function submitSection() {
   clearInterval(APP_STATE.timerInterval);
   
-  // Calculate score
+  // ✅ Calculate score using assembled items only
   let correct = 0;
   let total = APP_STATE.sectionQuestions.length;
   
@@ -786,8 +1076,9 @@ function submitSection() {
   });
   
   const percentage = Math.round((correct / total) * 100);
+  const scaledScore = calculateScaledScore(percentage);
   
-  // Mark questions as used
+  // Mark questions as used (exposure control)
   APP_STATE.sectionQuestions.forEach(q => {
     APP_STATE.usedItemIds.add(q.id);
   });
@@ -799,10 +1090,12 @@ function submitSection() {
     correct,
     total,
     percentage,
+    scaledScore: APP_STATE.settings.scaledScoreEnabled ? scaledScore : null,
+    thetaUserEnd: APP_STATE.userTheta,
     timestamp: new Date().toISOString(),
-    itemsUsed: APP_STATE.sectionQuestions.map(q => q.id),
-    mstRoute: APP_STATE.mstRoute,
-    responses: APP_STATE.responses
+    itemIds: APP_STATE.sectionQuestions.map(q => q.id),
+    responses: APP_STATE.responses,
+    editsUsed: 3 - APP_STATE.editsRemaining
   };
   
   const history = JSON.parse(localStorage.getItem('results') || '[]');
@@ -820,7 +1113,8 @@ function showResultsScreen(result, history) {
   
   // Render current result
   const resultsContent = document.getElementById('resultsContent');
-  resultsContent.innerHTML = `
+  
+  let html = `
     <div class="result-stat">
       <span class="result-stat-label">Section</span>
       <span class="result-stat-value">${result.section}</span>
@@ -832,12 +1126,28 @@ function showResultsScreen(result, history) {
     <div class="result-stat">
       <span class="result-stat-label">Percentage</span>
       <span class="result-stat-value">${result.percentage}%</span>
+    </div>`;
+  
+  if (result.scaledScore !== null) {
+    html += `
+    <div class="result-stat">
+      <span class="result-stat-label">Heuristic Scaled Score</span>
+      <span class="result-stat-value">${result.scaledScore}</span>
+    </div>`;
+  }
+  
+  html += `
+    <div class="result-stat">
+      <span class="result-stat-label">Final θ (Ability)</span>
+      <span class="result-stat-value">${result.thetaUserEnd.toFixed(2)}</span>
     </div>
     <div class="result-stat">
-      <span class="result-stat-label">MST Route</span>
-      <span class="result-stat-value">${result.mstRoute.join(' → ')}</span>
+      <span class="result-stat-label">Edits Used</span>
+      <span class="result-stat-value">${result.editsUsed} / 3</span>
     </div>
   `;
+  
+  resultsContent.innerHTML = html;
   
   // Render history
   renderHistory('allHistoryContainer', history);
@@ -861,7 +1171,8 @@ function renderHistory(containerId, history) {
         <th>Section</th>
         <th>Score</th>
         <th>%</th>
-        <th>Route</th>
+        <th>Scaled</th>
+        <th>Final θ</th>
       </tr>
     </thead>
     <tbody>
@@ -879,7 +1190,8 @@ function renderHistory(containerId, history) {
       <td>${h.section}</td>
       <td>${h.correct}/${h.total}</td>
       <td>${h.percentage}%</td>
-      <td>${h.mstRoute ? h.mstRoute.join('→') : 'N/A'}</td>
+      <td>${h.scaledScore !== null ? h.scaledScore : '—'}</td>
+      <td>${h.thetaUserEnd ? h.thetaUserEnd.toFixed(2) : '—'}</td>
     `;
     
     tbody.appendChild(tr);
@@ -892,6 +1204,154 @@ function renderHistory(containerId, history) {
 function loadHistoryOnSetup() {
   const history = JSON.parse(localStorage.getItem('results') || '[]');
   renderHistory('historyContainer', history);
+}
+
+// ========================================
+// BANK STATS MODAL
+// ========================================
+
+function showBankStats() {
+  const modal = document.getElementById('bankStatsModal');
+  const content = document.getElementById('bankStatsContent');
+  
+  // Calculate comprehensive stats
+  const totalItems = APP_STATE.questionBank.length;
+  const totalAttempts = Array.from(APP_STATE.itemStats.values()).reduce((sum, s) => sum + s.attempts, 0);
+  const avgTheta = totalItems > 0 
+    ? APP_STATE.questionBank.reduce((sum, q) => sum + getItemTheta(q.id, q.difficulty), 0) / totalItems 
+    : 0;
+  
+  // Most answered items
+  const mostAnswered = Array.from(APP_STATE.itemStats.entries())
+    .sort((a, b) => b[1].attempts - a[1].attempts)
+    .slice(0, 10);
+  
+  // Least answered items (with at least 1 attempt)
+  const leastAnswered = Array.from(APP_STATE.itemStats.entries())
+    .filter(([id, stat]) => stat.attempts > 0)
+    .sort((a, b) => a[1].attempts - b[1].attempts)
+    .slice(0, 10);
+  
+  // Section theta averages
+  const sections = ['Quant', 'Verbal', 'Data Insights'];
+  const sectionStats = sections.map(sec => {
+    const items = APP_STATE.questionBank.filter(q => q.section === sec);
+    const avgTheta = items.length > 0
+      ? items.reduce((sum, q) => sum + getItemTheta(q.id, q.difficulty), 0) / items.length
+      : 0;
+    return { section: sec, count: items.length, avgTheta };
+  });
+  
+  let html = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h4>Total Items</h4>
+        <div class="stat-value">${totalItems}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Total Attempts</h4>
+        <div class="stat-value">${totalAttempts}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Avg Item θ</h4>
+        <div class="stat-value">${avgTheta.toFixed(2)}</div>
+      </div>
+    </div>
+    
+    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Section Averages</h3>
+    <div class="item-list">
+  `;
+  
+  sectionStats.forEach(s => {
+    html += `
+      <div class="item-row">
+        <span><strong>${s.section}</strong> (${s.count} items)</span>
+        <span>Avg θ: ${s.avgTheta.toFixed(2)}</span>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  
+  if (mostAnswered.length > 0) {
+    html += `
+      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top 10 Most Answered</h3>
+      <div class="item-list">
+    `;
+    mostAnswered.forEach(([id, stat]) => {
+      const item = APP_STATE.questionBank.find(q => q.id === id);
+      const accuracy = stat.attempts > 0 ? Math.round((stat.correct / stat.attempts) * 100) : 0;
+      html += `
+        <div class="item-row">
+          <span><strong>${id}</strong> ${item ? `(${item.section})` : ''}</span>
+          <span>${stat.attempts} attempts • ${accuracy}% correct • θ=${stat.theta.toFixed(2)}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  
+  if (leastAnswered.length > 0) {
+    html += `
+      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top 10 Least Answered</h3>
+      <div class="item-list">
+    `;
+    leastAnswered.forEach(([id, stat]) => {
+      const item = APP_STATE.questionBank.find(q => q.id === id);
+      const accuracy = stat.attempts > 0 ? Math.round((stat.correct / stat.attempts) * 100) : 0;
+      html += `
+        <div class="item-row">
+          <span><strong>${id}</strong> ${item ? `(${item.section})` : ''}</span>
+          <span>${stat.attempts} attempts • ${accuracy}% correct • θ=${stat.theta.toFixed(2)}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  
+  content.innerHTML = html;
+  openModal('bankStatsModal');
+}
+
+// ========================================
+// SCALED SCORE MAPPING
+// ========================================
+
+function showScaledMappingEditor() {
+  const textarea = document.getElementById('scaledMappingText');
+  const mapping = APP_STATE.settings.scaledMapping;
+  
+  const text = mapping.map(m => `${m.pct}:${m.score}`).join('\n');
+  textarea.value = text;
+  
+  openModal('scaledMappingModal');
+}
+
+function saveScaledMapping() {
+  const textarea = document.getElementById('scaledMappingText');
+  const lines = textarea.value.trim().split('\n');
+  
+  try {
+    const mapping = lines.map(line => {
+      const [pct, score] = line.split(':').map(s => parseFloat(s.trim()));
+      if (isNaN(pct) || isNaN(score)) {
+        throw new Error('Invalid format');
+      }
+      return { pct, score };
+    });
+    
+    if (mapping.length < 2) {
+      throw new Error('Need at least 2 points');
+    }
+    
+    APP_STATE.settings.scaledMapping = mapping.sort((a, b) => a.pct - b.pct);
+    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+    
+    closeModal('scaledMappingModal');
+    showToast('Scaled score mapping saved', 'success');
+  } catch (err) {
+    showToast('Invalid mapping format: ' + err.message, 'error');
+  }
 }
 
 // ========================================
@@ -953,7 +1413,6 @@ function handleCalcInput(val) {
   
   if (['+', '-', '*', '/', '%'].includes(val)) {
     if (calcState.operator && !calcState.waitingForOperand) {
-      // Calculate previous operation
       const result = performCalc(
         parseFloat(calcState.operand1),
         parseFloat(calcState.display),
@@ -1027,11 +1486,29 @@ function initEventListeners() {
         showToast('Failed to import: ' + err.message, 'error');
       }
     }
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   });
   
   document.getElementById('exportBankBtn').addEventListener('click', exportBank);
+  document.getElementById('installSampleBtn').addEventListener('click', installSampleBank);
+  document.getElementById('bankStatsBtn').addEventListener('click', showBankStats);
   document.getElementById('startBtn').addEventListener('click', startSession);
+  
+  // Settings
+  document.getElementById('showThetaCheck').addEventListener('change', (e) => {
+    APP_STATE.settings.showTheta = e.target.checked;
+    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+  });
+  
+  document.getElementById('heuristicScalingCheck').addEventListener('change', (e) => {
+    APP_STATE.settings.scaledScoreEnabled = e.target.checked;
+    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+  });
+  
+  document.getElementById('exposureControlCheck').addEventListener('change', (e) => {
+    APP_STATE.settings.exposureControl = e.target.checked;
+    localStorage.setItem('settings', JSON.stringify(APP_STATE.settings));
+  });
   
   document.getElementById('resetExposureCheck').addEventListener('change', (e) => {
     if (e.target.checked) {
@@ -1041,6 +1518,9 @@ function initEventListeners() {
       e.target.checked = false;
     }
   });
+  
+  document.getElementById('editScaledMappingBtn').addEventListener('click', showScaledMappingEditor);
+  document.getElementById('saveScaledMappingBtn').addEventListener('click', saveScaledMapping);
   
   // Question screen
   document.getElementById('prevBtn').addEventListener('click', () => navigateQuestion(-1));
@@ -1069,12 +1549,16 @@ function initEventListeners() {
   // Modals
   document.getElementById('closeScratchpad').addEventListener('click', () => closeModal('scratchpadModal'));
   document.getElementById('closeCalculator').addEventListener('click', () => closeModal('calculatorModal'));
+  document.getElementById('closeScaledMapping').addEventListener('click', () => closeModal('scaledMappingModal'));
+  document.getElementById('closeBankStats').addEventListener('click', () => closeModal('bankStatsModal'));
   
   // Close modals on ESC
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeModal('scratchpadModal');
       closeModal('calculatorModal');
+      closeModal('scaledMappingModal');
+      closeModal('bankStatsModal');
     }
   });
   
@@ -1087,7 +1571,7 @@ function initEventListeners() {
     });
   });
   
-  // Keyboard navigation in questions
+  // Keyboard navigation
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('questionScreen').classList.contains('active')) return;
     
@@ -1097,7 +1581,8 @@ function initEventListeners() {
       navigateQuestion(1);
     } else if (e.key >= '1' && e.key <= '5') {
       const optIdx = parseInt(e.key, 10) - 1;
-      if (optIdx < APP_STATE.sectionQuestions[APP_STATE.currentQuestionIndex].options.length) {
+      const question = APP_STATE.sectionQuestions[APP_STATE.currentQuestionIndex];
+      if (question && optIdx < question.options.length) {
         selectAnswer(optIdx);
       }
     }

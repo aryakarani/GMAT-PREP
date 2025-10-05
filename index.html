@@ -22,15 +22,23 @@
           <h2>📥 Question Bank</h2>
           <div class="bank-stats" id="bankStats">
             <p><strong>Total Questions:</strong> <span id="totalItems">0</span></p>
-            <div class="difficulty-breakdown">
-              <span>Easy: <strong id="easyCount">0</strong></span>
-              <span>Medium: <strong id="mediumCount">0</strong></span>
-              <span>Hard: <strong id="hardCount">0</strong></span>
+            <div class="section-counts">
+              <span>Quant: <strong id="quantCount">0</strong></span>
+              <span>Verbal: <strong id="verbalCount">0</strong></span>
+              <span>DI: <strong id="diCount">0</strong></span>
             </div>
+            <div class="difficulty-breakdown">
+              <span>θ &lt; -0.6 (Easy): <strong id="easyCount">0</strong></span>
+              <span>θ [-0.6, 0.6] (Medium): <strong id="mediumCount">0</strong></span>
+              <span>θ &gt; 0.6 (Hard): <strong id="hardCount">0</strong></span>
+            </div>
+            <div class="theta-histogram" id="thetaHistogram"></div>
           </div>
           <div class="button-group">
             <button id="importBtn" class="btn btn-primary">Import JSON/CSV</button>
             <button id="exportBankBtn" class="btn btn-secondary">Export Bank</button>
+            <button id="installSampleBtn" class="btn btn-secondary">Install Sample Bank (24)</button>
+            <button id="bankStatsBtn" class="btn btn-secondary">Stats</button>
             <input type="file" id="fileInput" accept=".json,.csv" style="display:none;">
           </div>
         </div>
@@ -74,16 +82,29 @@
           <div class="settings-list">
             <div class="setting-item">
               <label>
+                <input type="checkbox" id="showThetaCheck">
+                Show θ (ability) chip in test (for debug)
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>
+                <input type="checkbox" id="heuristicScalingCheck">
+                Enable heuristic scaled score estimate
+              </label>
+            </div>
+            <div class="setting-item">
+              <label>
                 <input type="checkbox" id="resetExposureCheck">
                 Reset exposure tracking (allow question re-use)
               </label>
             </div>
             <div class="setting-item">
               <label>
-                <input type="checkbox" id="heuristicScalingCheck">
-                Show heuristic scaled score estimate
+                <input type="checkbox" id="exposureControlCheck" checked>
+                Enable exposure control (avoid repeats)
               </label>
             </div>
+            <button id="editScaledMappingBtn" class="btn btn-secondary" style="margin-top: 1rem;">Edit Scaled Score Mapping</button>
           </div>
         </div>
 
@@ -110,6 +131,7 @@
         <span id="timerDisplay" class="timer">45:00</span>
       </div>
       <div class="top-bar-right">
+        <span id="thetaChip" class="theta-chip" style="display:none;">θ: 0.00</span>
         <span id="editsLeft" class="edits">Edits: 3</span>
         <button id="scratchpadBtn" class="btn btn-icon" title="Scratchpad">📝</button>
         <button id="calculatorBtn" class="btn btn-icon" title="Calculator" style="display:none;">🧮</button>
@@ -238,6 +260,40 @@
             <button class="calc-btn calc-equals" data-val="=">=</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCALED SCORE MAPPING MODAL -->
+  <div id="scaledMappingModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>⚙️ Scaled Score Mapping</h3>
+        <button class="modal-close" id="closeScaledMapping">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-description">
+          Define piecewise linear mapping from raw % to scaled score (605-805 range).
+          Use official GMAT Focus mock benchmarks to calibrate. This is a heuristic estimate only.
+        </p>
+        <div class="form-group">
+          <label>Mapping Points (format: percent:score, one per line)</label>
+          <textarea id="scaledMappingText" rows="6" placeholder="55:605&#10;65:655&#10;75:705&#10;85:745&#10;95:805"></textarea>
+        </div>
+        <button id="saveScaledMappingBtn" class="btn btn-primary">Save Mapping</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANK STATS MODAL -->
+  <div id="bankStatsModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>📊 Bank Statistics</h3>
+        <button class="modal-close" id="closeBankStats">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="bankStatsContent"></div>
       </div>
     </div>
   </div>
