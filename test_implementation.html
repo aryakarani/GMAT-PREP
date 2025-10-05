@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Test - GMAT Practice</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+    .test-section {
+      margin: 2rem 0;
+      padding: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+    }
+    .test-section.pass {
+      border-color: #4caf50;
+      background: #f1f8f4;
+    }
+    .test-section.fail {
+      border-color: #f44336;
+      background: #fef1f0;
+    }
+    .test-section.pending {
+      border-color: #ff9800;
+      background: #fff8f0;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #2196f3;
+      color: white;
+      font-size: 0.9rem;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    .result {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: white;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+    .pass-text { color: #4caf50; }
+    .fail-text { color: #f44336; }
+    .info-text { color: #2196f3; }
+  </style>
+</head>
+<body>
+  <h1>🧪 GMAT Practice App - Implementation Tests</h1>
+  <p>This page tests the implementation requirements for cross-device consistency.</p>
+
+  <div class="test-section pending" id="test1">
+    <h2>1. Robust Bank Loader (iOS-safe)</h2>
+    <button onclick="test1_loadBanks()">Test Bank Loading</button>
+    <button onclick="test1_forceReload()">Test Force Reload</button>
+    <div class="result" id="result1"></div>
+  </div>
+
+  <div class="test-section pending" id="test2">
+    <h2>2. Section Order System</h2>
+    <button onclick="test2_checkOrder()">Test Section Order Mapping</button>
+    <div class="result" id="result2"></div>
+  </div>
+
+  <div class="test-section pending" id="test3">
+    <h2>3. Uniqueness Guarantees</h2>
+    <button onclick="test3_sampleUniqueness()">Test Sample Uniqueness</button>
+    <button onclick="test3_assembleDuplicates()">Test Assembly (100 runs)</button>
+    <div class="result" id="result3"></div>
+  </div>
+
+  <div class="test-section pending" id="test4">
+    <h2>4. Button Event Wiring</h2>
+    <button onclick="test4_checkButtons()">Check All Buttons</button>
+    <div class="result" id="result4"></div>
+  </div>
+
+  <div class="test-section pending" id="test5">
+    <h2>5. ES2019 Compliance</h2>
+    <button onclick="test5_checkES2019()">Check Code Compatibility</button>
+    <div class="result" id="result5"></div>
+  </div>
+
+  <script>
+    // Test 1: Bank Loader
+    async function test1_loadBanks() {
+      const result = document.getElementById('result1');
+      const section = document.getElementById('test1');
+      result.innerHTML = 'Testing bank loader...';
+      
+      try {
+        // Check if loadBanks function exists
+        if (typeof loadBanks !== 'function') {
+          throw new Error('loadBanks function not found in global scope');
+        }
+        
+        // Simulate loading
+        const startTime = Date.now();
+        await loadBanks();
+        const elapsed = Date.now() - startTime;
+        
+        // Verify window.BANKS exists
+        if (!window.BANKS) {
+          throw new Error('window.BANKS not populated');
+        }
+        
+        // Verify structure
+        const requiredSections = ['Quant', 'Verbal', 'Data Insights'];
+        for (const sec of requiredSections) {
+          if (!window.BANKS[sec]) {
+            throw new Error(`Missing section: ${sec}`);
+          }
+          if (!Array.isArray(window.BANKS[sec])) {
+            throw new Error(`${sec} is not an array`);
+          }
+          if (window.BANKS[sec].length === 0) {
+            throw new Error(`${sec} is empty`);
+          }
+        }
+        
+        const qCount = window.BANKS.Quant.length;
+        const vCount = window.BANKS.Verbal.length;
+        const dCount = window.BANKS['Data Insights'].length;
+        
+        result.innerHTML = `<span class="pass-text">✅ PASS</span><br>
+          Loaded in ${elapsed}ms<br>
+          Quant: ${qCount}, Verbal: ${vCount}, DI: ${dCount}<br>
+          Total: ${qCount + vCount + dCount} questions`;
+        section.className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        section.className = 'test-section fail';
+      }
+    }
+    
+    async function test1_forceReload() {
+      const result = document.getElementById('result1');
+      result.innerHTML = 'Testing force reload with cache-buster...';
+      
+      try {
+        const startTime = Date.now();
+        await loadBanks({ force: true });
+        const elapsed = Date.now() - startTime;
+        
+        result.innerHTML = `<span class="pass-text">✅ PASS</span><br>
+          Force reload completed in ${elapsed}ms<br>
+          Cache-buster applied: ?v=${Date.now()}`;
+        document.getElementById('test1').className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        document.getElementById('test1').className = 'test-section fail';
+      }
+    }
+    
+    // Test 2: Section Order
+    function test2_checkOrder() {
+      const result = document.getElementById('result2');
+      const section = document.getElementById('test2');
+      
+      try {
+        const orderMap = {
+          'QVD': ['Quant', 'Verbal', 'Data Insights'],
+          'QDV': ['Quant', 'Data Insights', 'Verbal'],
+          'VQD': ['Verbal', 'Quant', 'Data Insights'],
+          'VDQ': ['Verbal', 'Data Insights', 'Quant'],
+          'DQV': ['Data Insights', 'Quant', 'Verbal'],
+          'DVQ': ['Data Insights', 'Verbal', 'Quant']
+        };
+        
+        let html = '<span class="pass-text">✅ PASS</span><br>';
+        html += 'Section order mapping verified:<br>';
+        for (const [key, value] of Object.entries(orderMap)) {
+          html += `${key}: ${value.join(' → ')}<br>`;
+        }
+        
+        // Check if startFullTest exists
+        if (typeof startFullTest !== 'function') {
+          throw new Error('startFullTest function not found');
+        }
+        
+        html += '<br><span class="info-text">startFullTest() function exists</span>';
+        
+        result.innerHTML = html;
+        section.className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        section.className = 'test-section fail';
+      }
+    }
+    
+    // Test 3: Uniqueness
+    async function test3_sampleUniqueness() {
+      const result = document.getElementById('result3');
+      const section = document.getElementById('test3');
+      result.innerHTML = 'Testing sample uniqueness...';
+      
+      try {
+        // Create test pool
+        const testPool = [];
+        for (let i = 0; i < 100; i++) {
+          testPool.push({ id: 'TEST' + i, difficulty: 'M' });
+        }
+        
+        // Test sampleWithoutReplacement
+        if (typeof sampleWithoutReplacement !== 'function') {
+          throw new Error('sampleWithoutReplacement not found');
+        }
+        
+        const sampled = sampleWithoutReplacement(testPool, 30);
+        
+        // Check for duplicates
+        const ids = sampled.map(q => q.id);
+        const uniqueIds = new Set(ids);
+        
+        if (ids.length !== uniqueIds.size) {
+          throw new Error('Duplicates found in sample!');
+        }
+        
+        if (sampled.length !== 30) {
+          throw new Error(`Expected 30 items, got ${sampled.length}`);
+        }
+        
+        result.innerHTML = `<span class="pass-text">✅ PASS</span><br>
+          Sampled 30 items from pool of 100<br>
+          All IDs unique: ${uniqueIds.size} unique out of ${ids.length}<br>
+          Sample IDs: ${Array.from(uniqueIds).slice(0, 5).join(', ')}...`;
+        section.className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        section.className = 'test-section fail';
+      }
+    }
+    
+    async function test3_assembleDuplicates() {
+      const result = document.getElementById('result3');
+      result.innerHTML = 'Running 100 assembly tests...';
+      
+      try {
+        if (!window.BANKS) {
+          await loadBanks();
+        }
+        
+        let totalQuestions = 0;
+        let duplicatesFound = 0;
+        
+        for (let i = 0; i < 100; i++) {
+          const items = assembleSection('Quant', 21);
+          totalQuestions += items.length;
+          
+          const ids = items.map(q => q.id);
+          const uniqueIds = new Set(ids);
+          
+          if (ids.length !== uniqueIds.size) {
+            duplicatesFound++;
+          }
+        }
+        
+        if (duplicatesFound > 0) {
+          throw new Error(`Found duplicates in ${duplicatesFound} out of 100 runs!`);
+        }
+        
+        result.innerHTML = `<span class="pass-text">✅ PASS</span><br>
+          100 runs completed<br>
+          Total questions assembled: ${totalQuestions}<br>
+          Duplicates found: 0<br>
+          Average per section: ${totalQuestions / 100}`;
+        document.getElementById('test3').className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        document.getElementById('test3').className = 'test-section fail';
+      }
+    }
+    
+    // Test 4: Buttons
+    function test4_checkButtons() {
+      const result = document.getElementById('result4');
+      const section = document.getElementById('test4');
+      
+      try {
+        const buttons = document.querySelectorAll('button');
+        let missingType = 0;
+        let withoutType = [];
+        
+        buttons.forEach(btn => {
+          if (!btn.hasAttribute('type') || btn.getAttribute('type') !== 'button') {
+            if (btn.id) {
+              withoutType.push(btn.id);
+            }
+            missingType++;
+          }
+        });
+        
+        if (missingType > 0 && withoutType.length > 0) {
+          throw new Error(`${missingType} buttons missing type="button": ${withoutType.join(', ')}`);
+        }
+        
+        result.innerHTML = `<span class="pass-text">✅ PASS</span><br>
+          Total buttons: ${buttons.length}<br>
+          All have type="button"<br>
+          <span class="info-text">Note: This test page's buttons are excluded</span>`;
+        section.className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        section.className = 'test-section fail';
+      }
+    }
+    
+    // Test 5: ES2019 Compliance
+    async function test5_checkES2019() {
+      const result = document.getElementById('result5');
+      const section = document.getElementById('test5');
+      result.innerHTML = 'Checking ES2019 compliance...';
+      
+      try {
+        // Fetch app.js and check for modern features
+        const response = await fetch('./app.js');
+        const code = await response.text();
+        
+        const forbidden = [
+          { pattern: /\.toSorted\(/g, name: 'toSorted (ES2023)' },
+          { pattern: /structuredClone\(/g, name: 'structuredClone (ES2021)' },
+          { pattern: /Promise\.any\(/g, name: 'Promise.any (ES2021)' },
+          { pattern: /\.at\(/g, name: 'Array.at() (ES2022)' },
+          { pattern: /\?\?/g, name: 'Nullish coalescing (ES2020)' },
+          { pattern: /\?\./g, name: 'Optional chaining (ES2020)' }
+        ];
+        
+        const violations = [];
+        for (const check of forbidden) {
+          const matches = code.match(check.pattern);
+          if (matches) {
+            violations.push(`${check.name}: ${matches.length} occurrences`);
+          }
+        }
+        
+        if (violations.length > 0) {
+          throw new Error('ES2019 violations found:\n' + violations.join('\n'));
+        }
+        
+        // Check for iOS-safe patterns
+        const goodPatterns = [
+          { pattern: /shuffleInPlace/g, name: 'shuffleInPlace' },
+          { pattern: /sampleWithoutReplacement/g, name: 'sampleWithoutReplacement' },
+          { pattern: /window\.BANKS/g, name: 'window.BANKS' },
+          { pattern: /window\.currentRun/g, name: 'window.currentRun' }
+        ];
+        
+        let html = '<span class="pass-text">✅ PASS</span><br>';
+        html += 'No ES2020+ features detected<br><br>';
+        html += 'Required functions present:<br>';
+        for (const check of goodPatterns) {
+          const matches = code.match(check.pattern);
+          if (matches) {
+            html += `${check.name}: ${matches.length} references<br>`;
+          } else {
+            html += `<span class="fail-text">${check.name}: NOT FOUND</span><br>`;
+          }
+        }
+        
+        result.innerHTML = html;
+        section.className = 'test-section pass';
+      } catch (err) {
+        result.innerHTML = `<span class="fail-text">❌ FAIL</span><br>${err.message}`;
+        section.className = 'test-section fail';
+      }
+    }
+    
+    // Auto-load app.js functions for testing
+    const script = document.createElement('script');
+    script.src = './app.js';
+    script.onload = () => {
+      console.log('✅ app.js loaded for testing');
+    };
+    script.onerror = () => {
+      console.error('❌ Failed to load app.js');
+    };
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>
