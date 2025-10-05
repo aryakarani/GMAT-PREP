@@ -162,6 +162,21 @@ body {
   border-radius: 8px;
 }
 
+.section-counts {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.section-counts span {
+  color: var(--text-secondary);
+}
+
+.section-counts strong {
+  color: var(--text-primary);
+}
+
 .difficulty-breakdown {
   display: flex;
   gap: 1.5rem;
@@ -171,10 +186,42 @@ body {
 
 .difficulty-breakdown span {
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .difficulty-breakdown strong {
   color: var(--text-primary);
+}
+
+.theta-histogram {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.25rem;
+  height: 40px;
+  align-items: flex-end;
+}
+
+.theta-bar {
+  flex: 1;
+  background: var(--accent-blue);
+  border-radius: 2px 2px 0 0;
+  min-width: 8px;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.theta-bar:hover {
+  background: var(--accent-blue-hover);
+}
+
+.theta-bar-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .form-group {
@@ -328,6 +375,17 @@ body {
 .edits {
   font-weight: 500;
   color: var(--text-secondary);
+}
+
+.theta-chip {
+  padding: 0.25rem 0.75rem;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--accent-blue);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  font-family: 'Courier New', monospace;
 }
 
 /* ========================================
@@ -598,6 +656,29 @@ body {
   max-width: 400px;
 }
 
+.modal-content.modal-large {
+  max-width: 800px;
+}
+
+.modal-description {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+#scaledMappingText,
+#scratchpadText {
+  width: 100%;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  resize: vertical;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -792,6 +873,54 @@ body {
   .modal-content {
     max-width: 100%;
   }
+}
+
+/* ========================================
+   STATS MODAL
+   ======================================== */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--bg-tertiary);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-card h4 {
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.item-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.item-row {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-row:hover {
+  background: var(--bg-tertiary);
 }
 
 /* ========================================
