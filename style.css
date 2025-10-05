@@ -30,6 +30,11 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  /* Chrome mobile rendering fixes */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent zoom on form focus in Chrome mobile */
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ========================================
@@ -44,6 +49,8 @@ body {
 
 .screen {
   display: none;
+  /* Fix overflow issues that break sticky in Chrome */
+  overflow: visible;
 }
 
 .screen.active {
@@ -75,6 +82,9 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  /* Improve touch responsiveness on Chrome mobile */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn:disabled {
@@ -243,6 +253,10 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 1rem;
+  /* Chrome mobile select fixes */
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .settings-list {
@@ -308,11 +322,16 @@ body {
   padding: 1rem 2rem;
   background: var(--bg-secondary);
   border-bottom: 2px solid var(--border-color);
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 100;
   flex-wrap: wrap;
   gap: 1rem;
+  /* Chrome mobile sticky fix */
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .top-bar-left,
@@ -462,6 +481,9 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  /* Improve touch handling on Chrome mobile */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .option-item:hover {
@@ -534,6 +556,9 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  /* Improve touch handling on Chrome mobile */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .review-item:hover {
@@ -636,6 +661,9 @@ body {
   justify-content: center;
   align-items: center;
   padding: 1rem;
+  /* Chrome mobile modal fixes */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .modal.active {
@@ -677,6 +705,10 @@ body {
   font-family: 'Courier New', monospace;
   font-size: 1rem;
   resize: vertical;
+  /* Chrome mobile input fixes */
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .modal-header {
@@ -740,6 +772,10 @@ body {
   font-size: 1.5rem;
   text-align: right;
   font-family: 'Courier New', monospace;
+  /* Chrome mobile input fixes */
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .calc-buttons {
@@ -757,6 +793,9 @@ body {
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.2s;
+  /* Improve touch handling on Chrome mobile */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .calc-btn:hover {
@@ -989,4 +1028,36 @@ textarea:focus-visible {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin-top: 0.25rem;
+}
+
+/* ========================================
+   CHROME MOBILE SPECIFIC FIXES
+   ======================================== */
+
+/* Prevent unwanted scrolling behaviors */
+html {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for Chrome mobile input zoom */
+input[type="text"],
+input[type="radio"],
+input[type="checkbox"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Improve Chrome mobile scrolling */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix sticky on Chrome mobile with transform */
+@supports (-webkit-sticky) or (position: sticky) {
+  .top-bar {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
 }
